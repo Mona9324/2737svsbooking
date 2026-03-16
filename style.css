@@ -438,3 +438,101 @@ h1 {
     font-size: 0.95rem;
   }
 }
+
+/* ===== ranking animation ===== */
+
+.rankingItem {
+  animation: rankFade 0.45s ease;
+}
+
+@keyframes rankFade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 랭킹 갱신 강조 */
+.rankingUpdate {
+  animation: rankingPulse 0.8s ease;
+}
+
+@keyframes rankingPulse {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.03);
+  }
+  100% {
+    transform: scale(1);
+  }
+
+  .slot {
+  transition:
+    background-color 0.28s ease,
+    border-color 0.28s ease,
+    transform 0.18s ease,
+    box-shadow 0.22s ease;
+}
+
+.slot.available:hover {
+  box-shadow: 0 8px 18px rgba(139, 209, 139, 0.28);
+}
+
+.slot.reserved:hover {
+  box-shadow: 0 8px 18px rgba(217, 140, 140, 0.24);
+}
+
+.slot.selected.highlightAvailable {
+  box-shadow: 0 8px 20px rgba(139, 209, 139, 0.34);
+}
+
+.slot.selected.highlightReserved {
+  box-shadow: 0 8px 20px rgba(217, 140, 140, 0.30);
+}
+
+.rankingItem {
+  animation: rankFade 0.45s ease;
+}
+
+@keyframes rankFade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.rankingUpdate {
+  animation: rankingPulse 0.8s ease;
+}
+
+@keyframes rankingPulse {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.03);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.rankingItem.firstPlace {
+  color: #b8860b;
+  font-weight: 700;
+}
+
+.rankingItem.firstPlace .medal {
+  filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.45));
+}
+}
