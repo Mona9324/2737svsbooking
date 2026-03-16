@@ -1,19 +1,19 @@
-let currentBuff = "monday";
-let selectedSlot = null;
-const ADMIN_PASSWORD = "2737admin";
-let adminAuthenticated = false;
-let bookingOpen = true;
-const svsDate = new Date("2026-03-23T00:00:00Z");
+var currentBuff = "monday";
+var selectedSlot = null;
+var ADMIN_PASSWORD = "2737admin";
+var adminAuthenticated = false;
+var bookingOpen = true;
+var svsDate = new Date("2026-03-23T00:00:00Z");
 
-const grid = document.getElementById("slots");
-const rankingBox = document.getElementById("rankingBox");
-const db = window.db || firebase.firestore();
+var grid = document.getElementById("slots");
+var rankingBox = document.getElementById("rankingBox");
+var db = window.db || firebase.firestore();
 
-let allSlotsData = {};
-let bookingUnsubscribe = null;
-let slotsUnsubscribe = null;
+var allSlotsData = {};
+var bookingUnsubscribe = null;
+var slotsUnsubscribe = null;
 
-const medalMap = ["🥇", "🥈", "🥉"];
+var medalMap = ["🥇", "🥈", "🥉"];
 
 function padTime(h, m) {
   if (m >= 60) {
@@ -34,39 +34,39 @@ function escapeHtml(value) {
 }
 
 function updateCountdown() {
-  const now = new Date();
-  const diff = svsDate - now;
+  var now = new Date();
+  var diff = svsDate - now;
 
   if (diff <= 0) {
     document.getElementById("countdown").innerText = "SVS has begun";
     return;
   }
 
-  const d = Math.floor(diff / (1000 * 60 * 60 * 24));
-  const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
-  const m = Math.floor((diff / (1000 * 60)) % 60);
+  var d = Math.floor(diff / (1000 * 60 * 60 * 24));
+  var h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+  var m = Math.floor((diff / (1000 * 60)) % 60);
 
   document.getElementById("countdown").innerText =
-    `SVS begins in ${d}d ${h}h ${m}m`;
+    "SVS begins in " + d + "d " + h + "h " + m + "m";
 }
 
 function setActiveTab() {
-  document.querySelectorAll(".tabs button").forEach((btn) => {
+  var buttons = document.querySelectorAll(".tabs button");
+  buttons.forEach(function (btn) {
     btn.classList.remove("active");
   });
 
-  const activeId = {
-    monday: "tab-monday",
-    tuesday: "tab-tuesday",
-    thursday: "tab-thursday"
-  }[currentBuff];
+  var activeId = "tab-monday";
+  if (currentBuff === "tuesday") activeId = "tab-tuesday";
+  if (currentBuff === "thursday") activeId = "tab-thursday";
 
-  const activeBtn = document.getElementById(activeId);
+  var activeBtn = document.getElementById(activeId);
   if (activeBtn) activeBtn.classList.add("active");
 }
 
 function clearSelection() {
-  document.querySelectorAll(".slot").forEach((slot) => {
+  var slots = document.querySelectorAll(".slot");
+  slots.forEach(function (slot) {
     slot.classList.remove("selected", "highlightAvailable", "highlightReserved");
   });
 }
@@ -74,7 +74,11 @@ function clearSelection() {
 function highlightSlot(div, isAvailable) {
   clearSelection();
   div.classList.add("selected");
-  div.classList.add(isAvailable ? "highlightAvailable" : "highlightReserved");
+  if (isAvailable) {
+    div.classList.add("highlightAvailable");
+  } else {
+    div.classList.add("highlightReserved");
+  }
 }
 
 function switchBuff(buff) {
@@ -94,10 +98,17 @@ function openReserveModal(id) {
 
 function closeModal() {
   document.getElementById("modal").classList.remove("show");
-  document.getElementById("alliance").value = "";
-  document.getElementById("player").value = "";
-  document.getElementById("daysSaved").value = "";
-  document.getElementById("password").value = "";
+
+  var allianceEl = document.getElementById("alliance");
+  var playerEl = document.getElementById("player");
+  var daysSavedEl = document.getElementById("daysSaved");
+  var passwordEl = document.getElementById("password");
+
+  if (allianceEl) allianceEl.value = "";
+  if (playerEl) playerEl.value = "";
+  if (daysSavedEl) daysSavedEl.value = "";
+  if (passwordEl) passwordEl.value = "";
+
   selectedSlot = null;
   clearSelection();
 }
@@ -109,7 +120,8 @@ function openCancelModal(id) {
 
 function closeCancelModal() {
   document.getElementById("cancelModal").classList.remove("show");
-  document.getElementById("cancelPassword").value = "";
+  var cancelPasswordEl = document.getElementById("cancelPassword");
+  if (cancelPasswordEl) cancelPasswordEl.value = "";
   selectedSlot = null;
   clearSelection();
 }
@@ -123,7 +135,7 @@ function closeAdmin() {
 }
 
 function adminLogin() {
-  const pw = document.getElementById("adminPass").value;
+  var pw = document.getElementById("adminPass").value;
   if (pw === ADMIN_PASSWORD) {
     adminAuthenticated = true;
     document.getElementById("adminLogin").style.display = "none";
@@ -137,12 +149,12 @@ function setBooking(isOpen) {
   if (!adminAuthenticated) return;
 
   db.collection("settings").doc("booking").set({ open: isOpen }, { merge: true })
-    .then(() => {
+    .then(function () {
       bookingOpen = isOpen;
       renderAll();
       alert(isOpen ? "예약이 열렸습니다." : "예약이 잠겼습니다.");
     })
-    .catch((error) => {
+    .catch(function (error) {
       console.error("setBooking error:", error);
       alert("설정 변경 중 오류가 발생했습니다.");
     });
@@ -153,62 +165,72 @@ function clearAll() {
   if (!confirm("전체 예약을 삭제할까요?")) return;
 
   db.collection("slots").get()
-    .then((snapshot) => {
-      const batch = db.batch();
-      snapshot.forEach((doc) => batch.delete(doc.ref));
+    .then(function (snapshot) {
+      var batch = db.batch();
+      snapshot.forEach(function (doc) {
+        batch.delete(doc.ref);
+      });
       return batch.commit();
     })
-    .then(() => {
+    .then(function () {
       alert("전체 예약이 삭제되었습니다.");
     })
-    .catch((error) => {
+    .catch(function (error) {
       console.error("clearAll error:", error);
       alert("전체 삭제 중 오류가 발생했습니다.");
     });
 }
 
 function getCurrentBuffTop3() {
-  return Object.entries(allSlotsData)
-    .filter(([key, value]) => key.startsWith(currentBuff + "_") && value)
-    .map(([, value]) => value)
-    .filter((slot) => slot.daysSaved !== undefined && slot.daysSaved !== null && slot.daysSaved !== "")
-    .sort((a, b) => Number(b.daysSaved) - Number(a.daysSaved))
+  return Object.keys(allSlotsData)
+    .filter(function (key) {
+      return key.indexOf(currentBuff + "_") === 0 && allSlotsData[key];
+    })
+    .map(function (key) {
+      return allSlotsData[key];
+    })
+    .filter(function (slot) {
+      return slot.daysSaved !== undefined && slot.daysSaved !== null && slot.daysSaved !== "";
+    })
+    .sort(function (a, b) {
+      return Number(b.daysSaved) - Number(a.daysSaved);
+    })
     .slice(0, 3);
 }
 
 function updateCounts() {
-  let reserved = 0;
-  let available = 0;
+  var reserved = 0;
+  var available = 0;
 
-  for (let h = 0; h < 24; h++) {
-    for (let m = 0; m < 60; m += 30) {
-      const id = `${currentBuff}_${padTime(h, m)}`;
+  for (var h = 0; h < 24; h++) {
+    for (var m = 0; m < 60; m += 30) {
+      var id = currentBuff + "_" + padTime(h, m);
       if (allSlotsData[id]) reserved++;
       else available++;
     }
   }
 
-  document.getElementById("availableCount").innerText = `Available ${available}`;
-  document.getElementById("reservedCount").innerText = `Reserved ${reserved}`;
+  document.getElementById("availableCount").innerText = "Available " + available;
+  document.getElementById("reservedCount").innerText = "Reserved " + reserved;
 }
 
 function updateTopSpeedups() {
-  const top3 = getCurrentBuffTop3();
+  var top3 = getCurrentBuffTop3();
 
-  let html = '<div class="rankingTitle">Top Speed-ups</div>';
+  var html = '<div class="rankingTitle">Top Speed-ups</div>';
   html += '<div class="rankingList">';
 
   if (top3.length === 0) {
     html += '<div class="rankingItem empty">No data yet</div>';
   } else {
-    top3.forEach((slot, idx) => {
-      const firstClass = idx === 0 ? " firstPlace" : "";
-      html += `
-        <div class="rankingItem${firstClass}">
-          <span class="medal">${medalMap[idx]}</span>
-          <span class="rankingText">[${escapeHtml(slot.alliance || "-")}] ${escapeHtml(slot.player || "-")} (${Number(slot.daysSaved)})</span>
-        </div>
-      `;
+    top3.forEach(function (slot, idx) {
+      var firstClass = idx === 0 ? " firstPlace" : "";
+      html +=
+        '<div class="rankingItem' + firstClass + '">' +
+          '<span class="medal">' + medalMap[idx] + '</span>' +
+          '<span class="rankingText">[' + escapeHtml(slot.alliance || "-") + '] ' +
+          escapeHtml(slot.player || "-") + ' (' + Number(slot.daysSaved) + ')</span>' +
+        '</div>';
     });
   }
 
@@ -223,67 +245,71 @@ function updateTopSpeedups() {
 function generateSlots() {
   grid.innerHTML = "";
 
-  for (let h = 0; h < 24; h++) {
-    for (let m = 0; m < 60; m += 30) {
-      const utcStart = padTime(h, m);
-      const utcEnd = padTime(h, m + 30);
-      const id = `${currentBuff}_${utcStart}`;
-      const slot = allSlotsData[id];
+  for (var h = 0; h < 24; h++) {
+    for (var m = 0; m < 60; m += 30) {
+      var utcStart = padTime(h, m);
+      var utcEnd = padTime(h, m + 30);
+      var id = currentBuff + "_" + utcStart;
+      var slot = allSlotsData[id];
 
-      const localDate = new Date();
+      var localDate = new Date();
       localDate.setUTCHours(h, m, 0, 0);
-      const localEndDate = new Date(localDate.getTime() + 30 * 60 * 1000);
+      var localEndDate = new Date(localDate.getTime() + 30 * 60 * 1000);
 
-      const localStart = localDate.toLocaleTimeString([], {
+      var localStart = localDate.toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit"
       });
 
-      const localEnd = localEndDate.toLocaleTimeString([], {
+      var localEnd = localEndDate.toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit"
       });
 
-      const div = document.createElement("div");
+      var div = document.createElement("div");
       div.className = "slot";
 
       if (!bookingOpen) {
         div.classList.add("locked");
-        div.innerHTML = `
-          <div class="timeRow">
-            <span class="timeUTC">${utcStart} - ${utcEnd} UTC</span>
-          </div>
-          <div class="timeLocal">${localStart} - ${localEnd}</div>
-          <div class="bookingInfo">🔒 Booking Closed</div>
-        `;
+        div.innerHTML =
+          '<div class="timeRow">' +
+            '<span class="timeUTC">' + utcStart + ' - ' + utcEnd + ' UTC</span>' +
+          '</div>' +
+          '<div class="timeLocal">' + localStart + ' - ' + localEnd + '</div>' +
+          '<div class="bookingInfo">🔒 Booking Closed</div>';
       } else if (!slot) {
         div.classList.add("available");
-        div.innerHTML = `
-          <div class="timeRow">
-            <span class="timeUTC">${utcStart} - ${utcEnd} UTC</span>
-            <span class="statusAvailable">Available</span>
-          </div>
-          <div class="timeLocal">${localStart} - ${localEnd}</div>
-          <div class="bookingInfo">Click to book this slot</div>
-        `;
-        div.onclick = () => {
-          highlightSlot(div, true);
-          openReserveModal(id);
-        };
+        div.innerHTML =
+          '<div class="timeRow">' +
+            '<span class="timeUTC">' + utcStart + ' - ' + utcEnd + ' UTC</span>' +
+            '<span class="statusAvailable">Available</span>' +
+          '</div>' +
+          '<div class="timeLocal">' + localStart + ' - ' + localEnd + '</div>' +
+          '<div class="bookingInfo">Click to book this slot</div>';
+
+        div.onclick = (function (slotId, el) {
+          return function () {
+            highlightSlot(el, true);
+            openReserveModal(slotId);
+          };
+        })(id, div);
       } else {
         div.classList.add("reserved");
-        div.innerHTML = `
-          <div class="timeRow">
-            <span class="timeUTC">${utcStart} - ${utcEnd} UTC</span>
-            <span class="statusReserved">Reserved</span>
-          </div>
-          <div class="timeLocal">${localStart} - ${localEnd}</div>
-          <div class="bookingInfo">[${escapeHtml(slot.alliance)}] ${escapeHtml(slot.player)} (${Number(slot.daysSaved)})</div>
-        `;
-        div.onclick = () => {
-          highlightSlot(div, false);
-          openCancelModal(id);
-        };
+        div.innerHTML =
+          '<div class="timeRow">' +
+            '<span class="timeUTC">' + utcStart + ' - ' + utcEnd + ' UTC</span>' +
+            '<span class="statusReserved">Reserved</span>' +
+          '</div>' +
+          '<div class="timeLocal">' + localStart + ' - ' + localEnd + '</div>' +
+          '<div class="bookingInfo">[' + escapeHtml(slot.alliance) + '] ' +
+          escapeHtml(slot.player) + ' (' + Number(slot.daysSaved) + ')</div>';
+
+        div.onclick = (function (slotId, el) {
+          return function () {
+            highlightSlot(el, false);
+            openCancelModal(slotId);
+          };
+        })(id, div);
       }
 
       grid.appendChild(div);
@@ -308,11 +334,11 @@ function attachRealtimeListeners() {
   }
 
   bookingUnsubscribe = db.collection("settings").doc("booking").onSnapshot(
-    (doc) => {
+    function (doc) {
       bookingOpen = doc.exists ? Boolean(doc.data().open) : true;
       renderAll();
     },
-    (error) => {
+    function (error) {
       console.error("booking onSnapshot error:", error);
       bookingOpen = true;
       renderAll();
@@ -320,15 +346,15 @@ function attachRealtimeListeners() {
   );
 
   slotsUnsubscribe = db.collection("slots").onSnapshot(
-    (snapshot) => {
-      const data = {};
-      snapshot.forEach((docItem) => {
+    function (snapshot) {
+      var data = {};
+      snapshot.forEach(function (docItem) {
         data[docItem.id] = docItem.data();
       });
       allSlotsData = data;
       renderAll();
     },
-    (error) => {
+    function (error) {
       console.error("slots onSnapshot error:", error);
     }
   );
@@ -339,6 +365,16 @@ function loadSlots() {
 }
 
 function confirmBooking() {
+  var allianceEl = document.getElementById("alliance");
+  var playerEl = document.getElementById("player");
+  var daysSavedEl = document.getElementById("daysSaved");
+  var passwordEl = document.getElementById("password");
+
+  if (!allianceEl || !playerEl || !daysSavedEl || !passwordEl) {
+    alert("예약 입력창을 찾을 수 없습니다. index.html을 다시 확인해주세요.");
+    return;
+  }
+
   if (!selectedSlot) {
     alert("예약 슬롯을 먼저 선택해주세요.");
     return;
@@ -349,43 +385,43 @@ function confirmBooking() {
     return;
   }
 
-  const alliance = document.getElementById("alliance").value.trim();
-  const player = document.getElementById("player").value.trim();
-  const daysSavedRaw = document.getElementById("daysSaved").value.trim();
-  const password = document.getElementById("password").value;
+  var alliance = allianceEl.value.trim();
+  var player = playerEl.value.trim();
+  var daysSavedRaw = daysSavedEl.value.trim();
+  var password = passwordEl.value;
 
   if (!alliance || !player || !daysSavedRaw || !password) {
     alert("모든 항목을 입력해주세요.");
     return;
   }
 
-  const daysSaved = Number(daysSavedRaw);
-  if (Number.isNaN(daysSaved) || daysSaved < 0) {
+  var daysSaved = Number(daysSavedRaw);
+  if (isNaN(daysSaved) || daysSaved < 0) {
     alert("Use Speed-up 값을 올바르게 입력해주세요.");
     return;
   }
 
-  const docRef = db.collection("slots").doc(selectedSlot);
+  var docRef = db.collection("slots").doc(selectedSlot);
 
   docRef.get()
-    .then((doc) => {
+    .then(function (doc) {
       if (doc.exists) {
         throw new Error("ALREADY_RESERVED");
       }
 
       return docRef.set({
-        alliance,
-        player,
-        daysSaved,
-        password,
+        alliance: alliance,
+        player: player,
+        daysSaved: daysSaved,
+        password: password,
         buff: currentBuff,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
     })
-    .then(() => {
+    .then(function () {
       closeModal();
     })
-    .catch((error) => {
+    .catch(function (error) {
       console.error("confirmBooking error:", error);
       if (error.message === "ALREADY_RESERVED") {
         alert("이미 예약된 슬롯입니다.");
@@ -401,26 +437,32 @@ function confirmCancel() {
     return;
   }
 
-  const cancelPassword = document.getElementById("cancelPassword").value;
-  const docRef = db.collection("slots").doc(selectedSlot);
+  var cancelPasswordEl = document.getElementById("cancelPassword");
+  if (!cancelPasswordEl) {
+    alert("취소 입력창을 찾을 수 없습니다.");
+    return;
+  }
+
+  var cancelPassword = cancelPasswordEl.value;
+  var docRef = db.collection("slots").doc(selectedSlot);
 
   docRef.get()
-    .then((doc) => {
+    .then(function (doc) {
       if (!doc.exists) {
         throw new Error("NOT_FOUND");
       }
 
-      const data = doc.data();
+      var data = doc.data();
       if (data.password !== cancelPassword) {
         throw new Error("WRONG_PASSWORD");
       }
 
       return docRef.delete();
     })
-    .then(() => {
+    .then(function () {
       closeCancelModal();
     })
-    .catch((error) => {
+    .catch(function (error) {
       console.error("confirmCancel error:", error);
       if (error.message === "NOT_FOUND") {
         alert("예약 정보를 찾을 수 없습니다.");
@@ -432,9 +474,9 @@ function confirmCancel() {
     });
 }
 
-const canvas = document.getElementById("snow");
-const ctx = canvas.getContext("2d");
-const flakes = [];
+var canvas = document.getElementById("snow");
+var ctx = canvas.getContext("2d");
+var flakes = [];
 
 function resizeCanvas() {
   canvas.width = window.innerWidth;
@@ -445,7 +487,7 @@ function initSnow() {
   resizeCanvas();
   flakes.length = 0;
 
-  for (let i = 0; i < 180; i++) {
+  for (var i = 0; i < 180; i++) {
     flakes.push({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
@@ -459,7 +501,7 @@ function initSnow() {
 function drawSnow() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  flakes.forEach((f) => {
+  flakes.forEach(function (f) {
     ctx.beginPath();
     ctx.arc(f.x, f.y, f.radius, 0, Math.PI * 2);
     ctx.fillStyle = "rgba(170, 210, 255, 0.85)";
