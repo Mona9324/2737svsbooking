@@ -2,17 +2,36 @@ let currentBuff = "monday";
 let selectedSlot = null;
 const ADMIN_PASSWORD = "2737admin";
 let adminAuthenticated = false;
-let bookingOpen = false;
+let bookingOpen = true;
 const svsDate = new Date("2026-03-23T00:00:00Z");
+
 const grid = document.getElementById("slots");
+const rankingBox = document.getElementById("rankingBox");
+const db = window.db || firebase.firestore();
 
-const dbRef = window.db || firebase.firestore();
-
+let allSlotsData = {};
 let bookingUnsubscribe = null;
 let slotsUnsubscribe = null;
-let allSlotsData = {};
 
 const medalMap = ["🥇", "🥈", "🥉"];
+
+function padTime(h, m) {
+  if (m >= 60) {
+    h += Math.floor(m / 60);
+    m = m % 60;
+  }
+  h = h % 24;
+  return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0");
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
 function updateCountdown() {
   const now = new Date();
@@ -27,25 +46,23 @@ function updateCountdown() {
   const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
   const m = Math.floor((diff / (1000 * 60)) % 60);
 
-  document.getElementById("countdown").innerText = `SVS begins in ${d}d ${h}h ${m}m`;
-}
-
-function padTime(h, m) {
-  if (m >= 60) {
-    h += Math.floor(m / 60);
-    m = m % 60;
-  }
-  h = h % 24;
-  return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0");
+  document.getElementById("countdown").innerText =
+    `SVS begins in ${d}d ${h}h ${m}m`;
 }
 
 function setActiveTab() {
-  const buttons = document.querySelectorAll(".tabs button");
-  buttons.forEach((btn) => btn.classList.remove("active"));
+  document.querySelectorAll(".tabs button").forEach((btn) => {
+    btn.classList.remove("active");
+  });
 
-  if (currentBuff === "monday" && buttons[0]) buttons[0].classList.add("active");
-  if (currentBuff === "tuesday" && buttons[1]) buttons[1].classList.add("active");
-  if (currentBuff === "thursday" && buttons[2]) buttons[2].classList.add("active");
+  const activeId = {
+    monday: "tab-monday",
+    tuesday: "tab-tuesday",
+    thursday: "tab-thursday"
+  }[currentBuff];
+
+  const activeBtn = document.getElementById(activeId);
+  if (activeBtn) activeBtn.classList.add("active");
 }
 
 function clearSelection() {
@@ -63,7 +80,7 @@ function highlightSlot(div, isAvailable) {
 function switchBuff(buff) {
   currentBuff = buff;
   setActiveTab();
-  renderAll(allSlotsData);
+  renderAll();
 }
 
 function openReserveModal(id) {
@@ -119,12 +136,14 @@ function adminLogin() {
 function setBooking(isOpen) {
   if (!adminAuthenticated) return;
 
-  dbRef.collection("settings").doc("booking").set({ open: isOpen }, { merge: true })
+  db.collection("settings").doc("booking").set({ open: isOpen }, { merge: true })
     .then(() => {
+      bookingOpen = isOpen;
+      renderAll();
       alert(isOpen ? "예약이 열렸습니다." : "예약이 잠겼습니다.");
     })
     .catch((error) => {
-      console.error(error);
+      console.error("setBooking error:", error);
       alert("설정 변경 중 오류가 발생했습니다.");
     });
 }
@@ -133,9 +152,9 @@ function clearAll() {
   if (!adminAuthenticated) return;
   if (!confirm("전체 예약을 삭제할까요?")) return;
 
-  dbRef.collection("slots").get()
+  db.collection("slots").get()
     .then((snapshot) => {
-      const batch = dbRef.batch();
+      const batch = db.batch();
       snapshot.forEach((doc) => batch.delete(doc.ref));
       return batch.commit();
     })
@@ -143,28 +162,28 @@ function clearAll() {
       alert("전체 예약이 삭제되었습니다.");
     })
     .catch((error) => {
-      console.error(error);
+      console.error("clearAll error:", error);
       alert("전체 삭제 중 오류가 발생했습니다.");
     });
 }
 
-function getCurrentBuffTop3(data) {
-  return Object.entries(data)
-    .filter(([key, value]) => key.startsWith(`${currentBuff}_`) && value)
+function getCurrentBuffTop3() {
+  return Object.entries(allSlotsData)
+    .filter(([key, value]) => key.startsWith(currentBuff + "_") && value)
     .map(([, value]) => value)
     .filter((slot) => slot.daysSaved !== undefined && slot.daysSaved !== null && slot.daysSaved !== "")
     .sort((a, b) => Number(b.daysSaved) - Number(a.daysSaved))
     .slice(0, 3);
 }
 
-function updateCounts(data) {
+function updateCounts() {
   let reserved = 0;
   let available = 0;
 
   for (let h = 0; h < 24; h++) {
     for (let m = 0; m < 60; m += 30) {
       const id = `${currentBuff}_${padTime(h, m)}`;
-      if (data[id]) reserved++;
+      if (allSlotsData[id]) reserved++;
       else available++;
     }
   }
@@ -173,9 +192,8 @@ function updateCounts(data) {
   document.getElementById("reservedCount").innerText = `Reserved ${reserved}`;
 }
 
-function updateTopSpeedups(data) {
-  const rankingBox = document.getElementById("rankingBox");
-  const top3 = getCurrentBuffTop3(data);
+function updateTopSpeedups() {
+  const top3 = getCurrentBuffTop3();
 
   let html = '<div class="rankingTitle">Top Speed-ups</div>';
   html += '<div class="rankingList">';
@@ -184,8 +202,9 @@ function updateTopSpeedups(data) {
     html += '<div class="rankingItem empty">No data yet</div>';
   } else {
     top3.forEach((slot, idx) => {
+      const firstClass = idx === 0 ? " firstPlace" : "";
       html += `
-        <div class="rankingItem">
+        <div class="rankingItem${firstClass}">
           <span class="medal">${medalMap[idx]}</span>
           <span class="rankingText">[${escapeHtml(slot.alliance || "-")}] ${escapeHtml(slot.player || "-")} (${Number(slot.daysSaved)})</span>
         </div>
@@ -193,28 +212,23 @@ function updateTopSpeedups(data) {
     });
   }
 
-  html += '</div>';
+  html += "</div>";
   rankingBox.innerHTML = html;
+
+  rankingBox.classList.remove("rankingUpdate");
+  void rankingBox.offsetWidth;
+  rankingBox.classList.add("rankingUpdate");
 }
 
-function escapeHtml(value) {
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-function generateSlots(data) {
+function generateSlots() {
   grid.innerHTML = "";
 
   for (let h = 0; h < 24; h++) {
     for (let m = 0; m < 60; m += 30) {
-      const utcTime = padTime(h, m);
-      const utcEndTime = padTime(h, m + 30);
-      const id = `${currentBuff}_${utcTime}`;
-      const slot = data[id];
+      const utcStart = padTime(h, m);
+      const utcEnd = padTime(h, m + 30);
+      const id = `${currentBuff}_${utcStart}`;
+      const slot = allSlotsData[id];
 
       const localDate = new Date();
       localDate.setUTCHours(h, m, 0, 0);
@@ -237,7 +251,7 @@ function generateSlots(data) {
         div.classList.add("locked");
         div.innerHTML = `
           <div class="timeRow">
-            <span class="timeUTC">${utcTime} - ${utcEndTime} UTC</span>
+            <span class="timeUTC">${utcStart} - ${utcEnd} UTC</span>
           </div>
           <div class="timeLocal">${localStart} - ${localEnd}</div>
           <div class="bookingInfo">🔒 Booking Closed</div>
@@ -246,7 +260,7 @@ function generateSlots(data) {
         div.classList.add("available");
         div.innerHTML = `
           <div class="timeRow">
-            <span class="timeUTC">${utcTime} - ${utcEndTime} UTC</span>
+            <span class="timeUTC">${utcStart} - ${utcEnd} UTC</span>
             <span class="statusAvailable">Available</span>
           </div>
           <div class="timeLocal">${localStart} - ${localEnd}</div>
@@ -260,7 +274,7 @@ function generateSlots(data) {
         div.classList.add("reserved");
         div.innerHTML = `
           <div class="timeRow">
-            <span class="timeUTC">${utcTime} - ${utcEndTime} UTC</span>
+            <span class="timeUTC">${utcStart} - ${utcEnd} UTC</span>
             <span class="statusReserved">Reserved</span>
           </div>
           <div class="timeLocal">${localStart} - ${localEnd}</div>
@@ -277,49 +291,45 @@ function generateSlots(data) {
   }
 }
 
-function renderAll(data) {
-  generateSlots(data);
-  updateCounts(data);
-  updateTopSpeedups(data);
+function renderAll() {
+  generateSlots();
+  updateCounts();
+  updateTopSpeedups();
 }
 
 function attachRealtimeListeners() {
+  if (bookingUnsubscribe) {
+    bookingUnsubscribe();
+    bookingUnsubscribe = null;
+  }
   if (slotsUnsubscribe) {
     slotsUnsubscribe();
     slotsUnsubscribe = null;
   }
 
-  if (bookingUnsubscribe) {
-    bookingUnsubscribe();
-    bookingUnsubscribe = null;
-  }
-
-  bookingUnsubscribe = dbRef.collection("settings").doc("booking").onSnapshot(
+  bookingUnsubscribe = db.collection("settings").doc("booking").onSnapshot(
     (doc) => {
-      bookingOpen = doc.exists ? Boolean(doc.data().open) : false;
-
-      if (slotsUnsubscribe) {
-        slotsUnsubscribe();
-        slotsUnsubscribe = null;
-      }
-
-      slotsUnsubscribe = dbRef.collection("slots").onSnapshot(
-        (snapshot) => {
-          const data = {};
-          snapshot.forEach((docItem) => {
-            data[docItem.id] = docItem.data();
-          });
-
-          allSlotsData = data;
-          renderAll(allSlotsData);
-        },
-        (error) => {
-          console.error("slots onSnapshot error:", error);
-        }
-      );
+      bookingOpen = doc.exists ? Boolean(doc.data().open) : true;
+      renderAll();
     },
     (error) => {
       console.error("booking onSnapshot error:", error);
+      bookingOpen = true;
+      renderAll();
+    }
+  );
+
+  slotsUnsubscribe = db.collection("slots").onSnapshot(
+    (snapshot) => {
+      const data = {};
+      snapshot.forEach((docItem) => {
+        data[docItem.id] = docItem.data();
+      });
+      allSlotsData = data;
+      renderAll();
+    },
+    (error) => {
+      console.error("slots onSnapshot error:", error);
     }
   );
 }
@@ -329,7 +339,10 @@ function loadSlots() {
 }
 
 function confirmBooking() {
-  if (!selectedSlot) return;
+  if (!selectedSlot) {
+    alert("예약 슬롯을 먼저 선택해주세요.");
+    return;
+  }
 
   if (!bookingOpen) {
     alert("예약이 닫혀 있습니다.");
@@ -352,40 +365,29 @@ function confirmBooking() {
     return;
   }
 
-  const slotRef = dbRef.collection("slots").doc(selectedSlot);
-  const bookingRef = dbRef.collection("settings").doc("booking");
+  const docRef = db.collection("slots").doc(selectedSlot);
 
-  dbRef.runTransaction(async (transaction) => {
-    const bookingDoc = await transaction.get(bookingRef);
-    const slotDoc = await transaction.get(slotRef);
+  docRef.get()
+    .then((doc) => {
+      if (doc.exists) {
+        throw new Error("ALREADY_RESERVED");
+      }
 
-    const isOpen = bookingDoc.exists ? Boolean(bookingDoc.data().open) : false;
-    if (!isOpen) {
-      throw new Error("BOOKING_CLOSED");
-    }
-
-    if (slotDoc.exists) {
-      throw new Error("ALREADY_RESERVED");
-    }
-
-    transaction.set(slotRef, {
-      alliance,
-      player,
-      daysSaved,
-      password,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      buff: currentBuff
-    });
-  })
+      return docRef.set({
+        alliance,
+        player,
+        daysSaved,
+        password,
+        buff: currentBuff,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    })
     .then(() => {
       closeModal();
     })
     .catch((error) => {
-      console.error(error);
-
-      if (error.message === "BOOKING_CLOSED") {
-        alert("예약이 닫혀 있습니다.");
-      } else if (error.message === "ALREADY_RESERVED") {
+      console.error("confirmBooking error:", error);
+      if (error.message === "ALREADY_RESERVED") {
         alert("이미 예약된 슬롯입니다.");
       } else {
         alert("예약 중 오류가 발생했습니다.");
@@ -394,31 +396,32 @@ function confirmBooking() {
 }
 
 function confirmCancel() {
-  if (!selectedSlot) return;
+  if (!selectedSlot) {
+    alert("취소할 슬롯을 먼저 선택해주세요.");
+    return;
+  }
 
   const cancelPassword = document.getElementById("cancelPassword").value;
-  const slotRef = dbRef.collection("slots").doc(selectedSlot);
+  const docRef = db.collection("slots").doc(selectedSlot);
 
-  dbRef.runTransaction(async (transaction) => {
-    const doc = await transaction.get(slotRef);
+  docRef.get()
+    .then((doc) => {
+      if (!doc.exists) {
+        throw new Error("NOT_FOUND");
+      }
 
-    if (!doc.exists) {
-      throw new Error("NOT_FOUND");
-    }
+      const data = doc.data();
+      if (data.password !== cancelPassword) {
+        throw new Error("WRONG_PASSWORD");
+      }
 
-    const data = doc.data();
-    if (data.password !== cancelPassword) {
-      throw new Error("WRONG_PASSWORD");
-    }
-
-    transaction.delete(slotRef);
-  })
+      return docRef.delete();
+    })
     .then(() => {
       closeCancelModal();
     })
     .catch((error) => {
-      console.error(error);
-
+      console.error("confirmCancel error:", error);
       if (error.message === "NOT_FOUND") {
         alert("예약 정보를 찾을 수 없습니다.");
       } else if (error.message === "WRONG_PASSWORD") {
@@ -429,7 +432,6 @@ function confirmCancel() {
     });
 }
 
-/* blue snow */
 const canvas = document.getElementById("snow");
 const ctx = canvas.getContext("2d");
 const flakes = [];
