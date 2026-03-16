@@ -1,6 +1,6 @@
 let currentBuff = "monday";
 let selectedSlot = null;
-const ADMIN_PASSWORD = "2737admin"; // 임시용. 실제 운영은 프론트에 두면 안 됨.
+const ADMIN_PASSWORD = "2737admin";
 let adminAuthenticated = false;
 let bookingOpen = false;
 const svsDate = new Date("2026-03-23T00:00:00Z");
@@ -10,6 +10,9 @@ const dbRef = window.db || firebase.firestore();
 
 let bookingUnsubscribe = null;
 let slotsUnsubscribe = null;
+let allSlotsData = {};
+
+const medalMap = ["🥇", "🥈", "🥉"];
 
 function updateCountdown() {
   const now = new Date();
@@ -60,8 +63,7 @@ function highlightSlot(div, isAvailable) {
 function switchBuff(buff) {
   currentBuff = buff;
   setActiveTab();
-  // 리스너를 다시 붙일 필요 없이 현재 받아둔 전체 데이터로 다시 그림
-  loadSlots();
+  renderAll(allSlotsData);
 }
 
 function openReserveModal(id) {
@@ -146,14 +148,13 @@ function clearAll() {
     });
 }
 
-function getCurrentBuffData(data) {
-  const filtered = {};
-  Object.keys(data).forEach((key) => {
-    if (key.startsWith(`${currentBuff}_`)) {
-      filtered[key] = data[key];
-    }
-  });
-  return filtered;
+function getCurrentBuffTop3(data) {
+  return Object.entries(data)
+    .filter(([key, value]) => key.startsWith(`${currentBuff}_`) && value)
+    .map(([, value]) => value)
+    .filter((slot) => slot.daysSaved !== undefined && slot.daysSaved !== null && slot.daysSaved !== "")
+    .sort((a, b) => Number(b.daysSaved) - Number(a.daysSaved))
+    .slice(0, 3);
 }
 
 function updateCounts(data) {
@@ -173,22 +174,27 @@ function updateCounts(data) {
 }
 
 function updateTopSpeedups(data) {
-  const currentData = Object.values(getCurrentBuffData(data))
-    .filter((slot) => slot && slot.daysSaved !== undefined && slot.daysSaved !== null && slot.daysSaved !== "")
-    .sort((a, b) => Number(b.daysSaved) - Number(a.daysSaved))
-    .slice(0, 6);
+  const rankingBox = document.getElementById("rankingBox");
+  const top3 = getCurrentBuffTop3(data);
 
   let html = '<div class="rankingTitle">Top Speed-ups</div>';
+  html += '<div class="rankingList">';
 
-  if (currentData.length === 0) {
-    html += '<div class="rankingItem">No data yet</div>';
+  if (top3.length === 0) {
+    html += '<div class="rankingItem empty">No data yet</div>';
   } else {
-    currentData.forEach((slot, idx) => {
-      html += `<div class="rankingItem"><span>${idx + 1}</span> ${escapeHtml(slot.player || "-")} (${Number(slot.daysSaved)})</div>`;
+    top3.forEach((slot, idx) => {
+      html += `
+        <div class="rankingItem">
+          <span class="medal">${medalMap[idx]}</span>
+          <span class="rankingText">[${escapeHtml(slot.alliance || "-")}] ${escapeHtml(slot.player || "-")} (${Number(slot.daysSaved)})</span>
+        </div>
+      `;
     });
   }
 
-  document.getElementById("rankingBox").innerHTML = html;
+  html += '</div>';
+  rankingBox.innerHTML = html;
 }
 
 function escapeHtml(value) {
@@ -206,6 +212,7 @@ function generateSlots(data) {
   for (let h = 0; h < 24; h++) {
     for (let m = 0; m < 60; m += 30) {
       const utcTime = padTime(h, m);
+      const utcEndTime = padTime(h, m + 30);
       const id = `${currentBuff}_${utcTime}`;
       const slot = data[id];
 
@@ -230,7 +237,7 @@ function generateSlots(data) {
         div.classList.add("locked");
         div.innerHTML = `
           <div class="timeRow">
-            <span class="timeUTC">${utcTime} - ${padTime(h, m + 30)} UTC</span>
+            <span class="timeUTC">${utcTime} - ${utcEndTime} UTC</span>
           </div>
           <div class="timeLocal">${localStart} - ${localEnd}</div>
           <div class="bookingInfo">🔒 Booking Closed</div>
@@ -239,11 +246,11 @@ function generateSlots(data) {
         div.classList.add("available");
         div.innerHTML = `
           <div class="timeRow">
-            <span class="timeUTC">${utcTime} - ${padTime(h, m + 30)} UTC</span>
+            <span class="timeUTC">${utcTime} - ${utcEndTime} UTC</span>
             <span class="statusAvailable">Available</span>
           </div>
           <div class="timeLocal">${localStart} - ${localEnd}</div>
-          <div class="bookingInfo">&nbsp;</div>
+          <div class="bookingInfo">Click to book this slot</div>
         `;
         div.onclick = () => {
           highlightSlot(div, true);
@@ -253,7 +260,7 @@ function generateSlots(data) {
         div.classList.add("reserved");
         div.innerHTML = `
           <div class="timeRow">
-            <span class="timeUTC">${utcTime} - ${padTime(h, m + 30)} UTC</span>
+            <span class="timeUTC">${utcTime} - ${utcEndTime} UTC</span>
             <span class="statusReserved">Reserved</span>
           </div>
           <div class="timeLocal">${localStart} - ${localEnd}</div>
@@ -302,7 +309,9 @@ function attachRealtimeListeners() {
           snapshot.forEach((docItem) => {
             data[docItem.id] = docItem.data();
           });
-          renderAll(data);
+
+          allSlotsData = data;
+          renderAll(allSlotsData);
         },
         (error) => {
           console.error("slots onSnapshot error:", error);
@@ -316,9 +325,6 @@ function attachRealtimeListeners() {
 }
 
 function loadSlots() {
-  // 최초 1회는 리스너 연결, 그 이후 탭 전환이면 DOM만 다시 그리도록 바꾸고 싶으면
-  // 전역 캐시를 둘 수 있음.
-  // 지금은 기존 구조 유지.
   attachRealtimeListeners();
 }
 
@@ -342,7 +348,7 @@ function confirmBooking() {
 
   const daysSaved = Number(daysSavedRaw);
   if (Number.isNaN(daysSaved) || daysSaved < 0) {
-    alert("Days Saved 값을 올바르게 입력해주세요.");
+    alert("Use Speed-up 값을 올바르게 입력해주세요.");
     return;
   }
 
@@ -350,10 +356,8 @@ function confirmBooking() {
   const bookingRef = dbRef.collection("settings").doc("booking");
 
   dbRef.runTransaction(async (transaction) => {
-    const [bookingDoc, slotDoc] = await Promise.all([
-      transaction.get(bookingRef),
-      transaction.get(slotRef)
-    ]);
+    const bookingDoc = await transaction.get(bookingRef);
+    const slotDoc = await transaction.get(slotRef);
 
     const isOpen = bookingDoc.exists ? Boolean(bookingDoc.data().open) : false;
     if (!isOpen) {
@@ -477,7 +481,6 @@ function drawSnow() {
 window.addEventListener("resize", resizeCanvas);
 setInterval(updateCountdown, 60000);
 
-/* default */
 updateCountdown();
 setActiveTab();
 initSnow();
