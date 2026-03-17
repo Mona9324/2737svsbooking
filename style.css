@@ -25,10 +25,21 @@ h1 {
   margin: 0 0 10px;
 }
 
+#snowSecret {
+  cursor: pointer;
+  user-select: none;
+}
+
 #countdown {
   font-size: 18px;
   font-weight: 700;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
+}
+
+.subInfo {
+  font-size: 14px;
+  color: #5b6470;
+  margin-bottom: 6px;
 }
 
 .creatorBadge {
@@ -67,35 +78,6 @@ h1 {
   z-index: 1;
 }
 
-.slotStats {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-top: 2px;
-  font-size: 18px;
-}
-
-.availableDot,
-.reservedDot {
-  width: 10px;
-  height: 10px;
-  display: inline-block;
-  border-radius: 50%;
-  margin-right: 6px;
-  vertical-align: middle;
-}
-
-.availableDot {
-  background: #8bd18b;
-}
-
-.reservedDot {
-  background: #d98c8c;
-  margin-left: 20px;
-}
-
 .tabs {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -132,6 +114,73 @@ h1 {
   color: #1c4a61;
 }
 
+.toolbar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+  max-width: 1180px;
+  padding: 0 20px;
+  box-sizing: border-box;
+}
+
+.toolbar input,
+.toolbar select,
+.toolbar button {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #cfd8e3;
+  font-size: 14px;
+}
+
+.toolbar button {
+  background: #7da7ff;
+  color: #fff;
+  border: none;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.toolbar button:hover {
+  background: #6a96f4;
+}
+
+.slotStats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+  font-size: 18px;
+}
+
+.availableDot,
+.reservedDot,
+.mineDot {
+  width: 10px;
+  height: 10px;
+  display: inline-block;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.availableDot {
+  background: #8bd18b;
+}
+
+.reservedDot {
+  background: #d98c8c;
+  margin-left: 20px;
+}
+
+.mineDot {
+  background: #6c7cff;
+  margin-left: 20px;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -148,7 +197,7 @@ h1 {
   background: #fffaf2;
   border-radius: 12px;
   text-align: left;
-  min-height: 128px;
+  min-height: 150px;
   padding: 14px;
   box-sizing: border-box;
   display: flex;
@@ -202,6 +251,11 @@ h1 {
   box-shadow: 0 8px 20px rgba(217, 140, 140, 0.30);
 }
 
+.slot.myReservation {
+  border-color: #6c7cff;
+  box-shadow: 0 0 0 3px rgba(108, 124, 255, 0.14);
+}
+
 .timeRow {
   display: flex;
   justify-content: space-between;
@@ -236,11 +290,27 @@ h1 {
   white-space: nowrap;
 }
 
+.statusMine {
+  font-size: 12px;
+  font-weight: 700;
+  color: #5b60df;
+  margin-top: 6px;
+}
+
 .bookingInfo {
   margin-top: 10px;
   font-size: 14px;
-  line-height: 1.35;
+  line-height: 1.4;
   word-break: break-word;
+}
+
+.adminNotePreview {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #7a5c1f;
+  background: rgba(255, 236, 179, 0.5);
+  border-radius: 8px;
+  padding: 6px 8px;
 }
 
 .modal {
@@ -262,7 +332,7 @@ h1 {
 .modalBox {
   background: #fff;
   width: 100%;
-  max-width: 320px;
+  max-width: 360px;
   padding: 24px;
   border-radius: 14px;
   display: flex;
@@ -276,11 +346,33 @@ h1 {
   margin: 0 0 4px;
 }
 
-.modalBox input {
+.selectedSlotInfo {
+  background: #eef5ff;
+  color: #38557a;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  line-height: 1.45;
+  text-align: left;
+}
+
+.reservedDetail {
+  background: #fff8f8;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  text-align: left;
+  line-height: 1.45;
+}
+
+.modalBox input,
+.modalBox textarea {
   padding: 10px 12px;
   border: 1px solid #cfd8e3;
   border-radius: 8px;
   font-size: 14px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .modalBox button {
@@ -297,31 +389,15 @@ h1 {
   background: #6a96f4;
 }
 
-.adminFloating {
-  position: fixed;
-  right: 22px;
-  bottom: 22px;
-  z-index: 1200;
-  padding: 10px 12px;
-  border: none;
-  border-radius: 8px;
-  background: #7da7ff;
-  color: #fff;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.adminFloating:hover {
-  background: #6a96f4;
-}
-
 .adminPanel {
   display: none;
   position: fixed;
   top: 50%;
   left: 50%;
   width: calc(100% - 32px);
-  max-width: 340px;
+  max-width: 520px;
+  max-height: 86vh;
+  overflow: auto;
   padding: 22px;
   box-sizing: border-box;
   background: #fff;
@@ -333,9 +409,11 @@ h1 {
 
 .adminPanel.show {
   display: block;
+  animation: adminFadeIn 0.22s ease;
 }
 
-.adminPanel h3 {
+.adminPanel h3,
+.adminPanel h4 {
   margin-top: 0;
 }
 
@@ -343,194 +421,76 @@ h1 {
 #adminControls {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
-#adminLogin input {
+.adminUserInfo {
+  font-size: 14px;
+  color: #4b5563;
+  text-align: left;
+}
+
+.adminSection {
+  border: 1px solid #e1e8f0;
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+}
+
+.adminSection input,
+.adminSection textarea,
+.adminSection button {
   padding: 10px 12px;
-  border: 1px solid #cfd8e3;
   border-radius: 8px;
   font-size: 14px;
+  box-sizing: border-box;
 }
 
-#adminControls button,
+.adminSection input,
+.adminSection textarea {
+  border: 1px solid #cfd8e3;
+}
+
+.adminSection button,
 #adminLogin button,
 .adminPanel > button {
-  padding: 10px 12px;
   border: none;
-  border-radius: 8px;
   background: #7da7ff;
   color: #fff;
   font-weight: 700;
   cursor: pointer;
 }
 
-#adminControls button:hover,
+.adminSection button:hover,
 #adminLogin button:hover,
 .adminPanel > button:hover {
   background: #6a96f4;
 }
 
-#adminControls {
-  display: none;
-  margin-bottom: 12px;
+.adminSelectedSlotLabel {
+  font-size: 13px;
+  color: #5b6470;
 }
 
-#rankingBox {
-  position: absolute;
-  top: 10px;
-  right: 16px;
-  width: 240px;
-  background: rgba(255, 255, 255, 0.95);
-  padding: 12px 14px;
-  border-radius: 10px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.12);
-  box-sizing: border-box;
-}
-
-.rankingTitle {
-  font-weight: 700;
-  margin-bottom: 10px;
-  text-align: center;
-}
-
-.rankingList {
+.logsBox {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  align-items: flex-start;
-}
-
-.rankingItem {
-  display: flex;
-  align-items: center;
   gap: 8px;
-  animation: rankFade 0.45s ease;
+  max-height: 260px;
+  overflow: auto;
 }
 
-.rankingItem.empty {
-  opacity: 0.8;
+.logItem {
+  background: #f6f9fc;
+  border-radius: 10px;
+  padding: 10px;
+  font-size: 13px;
+  line-height: 1.45;
 }
 
-.rankingItem.firstPlace {
-  color: #b8860b;
-  font-weight: 700;
-  animation: firstPlaceGlow 1.8s ease-in-out infinite;
-}
-
-.rankingItem.firstPlace .medal {
-  filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.55));
-}
-
-.medal {
-  min-width: 24px;
-  text-align: center;
-  font-weight: 700;
-}
-
-.rankingText {
-  word-break: break-word;
-}
-
-.rankingUpdate {
-  animation: rankingPulse 0.8s ease;
-}
-
-@keyframes rankFade {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes rankingPulse {
-  0% {
-    transform: scale(1);
-  }
-
-  40% {
-    transform: scale(1.03);
-  }
-
-  100% {
-    transform: scale(1);
-  }
-}
-
-@keyframes firstPlaceGlow {
-  0% {
-    text-shadow: 0 0 0 rgba(255, 215, 0, 0);
-    transform: scale(1);
-  }
-
-  50% {
-    text-shadow:
-      0 0 6px rgba(255, 215, 0, 0.45),
-      0 0 12px rgba(255, 215, 0, 0.22);
-    transform: scale(1.02);
-  }
-
-  100% {
-    text-shadow: 0 0 0 rgba(255, 215, 0, 0);
-    transform: scale(1);
-  }
-}
-
-@media (max-width: 980px) {
-  #rankingBox {
-    position: static;
-    width: auto;
-    max-width: 320px;
-    margin: 12px auto 0;
-  }
-}
-
-@media (max-width: 900px) {
-  .grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .tabs button {
-    font-size: 15px;
-  }
-}
-
-@media (max-width: 700px) {
-  .tabs {
-    grid-template-columns: 1fr;
-  }
-
-  .tabs button {
-    white-space: normal;
-  }
-
-  .grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 520px) {
-  .grid {
-    grid-template-columns: 1fr;
-  }
-
-  .timeRow {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .slotStats {
-    line-height: 1.8;
-    font-size: 0.95rem;
-  }
-}
-
-/* ===== toast ===== */
 .toastContainer {
   position: fixed;
   top: 18px;
@@ -568,6 +528,10 @@ h1 {
   transition: opacity 0.22s ease, transform 0.22s ease;
 }
 
+.slot.successFlash {
+  animation: successFlashAnim 1.2s ease;
+}
+
 @keyframes toastIn {
   from {
     opacity: 0;
@@ -579,12 +543,6 @@ h1 {
   }
 }
 
-/* ===== admin fade ===== */
-.adminPanel.show {
-  display: block;
-  animation: adminFadeIn 0.22s ease;
-}
-
 @keyframes adminFadeIn {
   from {
     opacity: 0;
@@ -594,11 +552,6 @@ h1 {
     opacity: 1;
     transform: translate(-50%, -50%);
   }
-}
-
-/* ===== success flash ===== */
-.slot.successFlash {
-  animation: successFlashAnim 1.2s ease;
 }
 
 @keyframes successFlashAnim {
@@ -616,8 +569,46 @@ h1 {
   }
 }
 
-/* 눈송이 아이콘 */
-#snowSecret {
-  cursor: pointer;
-  user-select: none;
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .tabs button {
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 700px) {
+  .tabs {
+    grid-template-columns: 1fr;
+  }
+
+  .tabs button {
+    white-space: normal;
+  }
+
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .toolbar {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 520px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .timeRow {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .slotStats {
+    line-height: 1.8;
+    font-size: 0.95rem;
+  }
 }
