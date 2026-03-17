@@ -12,8 +12,10 @@ var db = window.db || firebase.firestore();
 var allSlotsData = {};
 var bookingUnsubscribe = null;
 var slotsUnsubscribe = null;
+var recentBookedSlotId = null;
 
 var medalMap = ["🥇", "🥈", "🥉"];
+var ALLIANCE_STORAGE_KEY = "svs_recent_alliances";
 
 function padTime(h, m) {
   if (m >= 60) {
@@ -31,6 +33,63 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function showToast(message, type) {
+  var container = document.getElementById("toastContainer");
+  if (!container) return;
+
+  var toast = document.createElement("div");
+  toast.className = "toast" + (type ? " " + type : "");
+  toast.textContent = message;
+
+  container.appendChild(toast);
+
+  setTimeout(function () {
+    toast.classList.add("hide");
+    setTimeout(function () {
+      if (toast.parentNode) toast.parentNode.removeChild(toast);
+    }, 250);
+  }, 2200);
+}
+
+function getSavedAlliances() {
+  try {
+    var raw = localStorage.getItem(ALLIANCE_STORAGE_KEY);
+    if (!raw) return [];
+    var parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveAllianceRecent(alliance) {
+  if (!alliance) return;
+
+  var items = getSavedAlliances().filter(function (item) {
+    return item.toLowerCase() !== alliance.toLowerCase();
+  });
+
+  items.unshift(alliance);
+  items = items.slice(0, 8);
+
+  localStorage.setItem(ALLIANCE_STORAGE_KEY, JSON.stringify(items));
+  renderAllianceSuggestions();
+}
+
+function renderAllianceSuggestions() {
+  var list = document.getElementById("allianceSuggestions");
+  if (!list) return;
+
+  var items = getSavedAlliances();
+  list.innerHTML = "";
+
+  items.forEach(function (item) {
+    var option = document.createElement("option");
+    option.value = item;
+    list.appendChild(option);
+  });
 }
 
 function updateCountdown() {
@@ -89,7 +148,7 @@ function switchBuff(buff) {
 
 function openReserveModal(id) {
   if (!bookingOpen) {
-    alert("예약이 닫혀 있습니다.");
+    showToast("예약이 닫혀 있습니다.", "error");
     return;
   }
   selectedSlot = id;
@@ -135,13 +194,16 @@ function closeAdmin() {
 }
 
 function adminLogin() {
-  var pw = document.getElementById("adminPass").value;
+  var passEl = document.getElementById("adminPass");
+  var pw = passEl ? passEl.value : "";
+
   if (pw === ADMIN_PASSWORD) {
     adminAuthenticated = true;
     document.getElementById("adminLogin").style.display = "none";
     document.getElementById("adminControls").style.display = "flex";
+    showToast("관리자 로그인 완료", "success");
   } else {
-    alert("관리자 비밀번호가 틀렸습니다.");
+    showToast("관리자 비밀번호가 틀렸습니다.", "error");
   }
 }
 
@@ -152,11 +214,11 @@ function setBooking(isOpen) {
     .then(function () {
       bookingOpen = isOpen;
       renderAll();
-      alert(isOpen ? "예약이 열렸습니다." : "예약이 잠겼습니다.");
+      showToast(isOpen ? "예약이 열렸습니다." : "예약이 잠겼습니다.", "success");
     })
     .catch(function (error) {
       console.error("setBooking error:", error);
-      alert("설정 변경 중 오류가 발생했습니다.");
+      showToast("설정 변경 중 오류가 발생했습니다.", "error");
     });
 }
 
@@ -173,11 +235,11 @@ function clearAll() {
       return batch.commit();
     })
     .then(function () {
-      alert("전체 예약이 삭제되었습니다.");
+      showToast("전체 예약이 삭제되었습니다.", "success");
     })
     .catch(function (error) {
       console.error("clearAll error:", error);
-      alert("전체 삭제 중 오류가 발생했습니다.");
+      showToast("전체 삭제 중 오류가 발생했습니다.", "error");
     });
 }
 
@@ -216,7 +278,6 @@ function updateCounts() {
 
 function updateTopSpeedups() {
   var top3 = getCurrentBuffTop3();
-
   var html = '<div class="rankingTitle">Top Speed-ups</div>';
   html += '<div class="rankingList">';
 
@@ -268,6 +329,10 @@ function generateSlots() {
 
       var div = document.createElement("div");
       div.className = "slot";
+
+      if (id === recentBookedSlotId) {
+        div.classList.add("successFlash");
+      }
 
       if (!bookingOpen) {
         div.classList.add("locked");
@@ -371,17 +436,17 @@ function confirmBooking() {
   var passwordEl = document.getElementById("password");
 
   if (!allianceEl || !playerEl || !daysSavedEl || !passwordEl) {
-    alert("예약 입력창을 찾을 수 없습니다. index.html을 다시 확인해주세요.");
+    showToast("예약 입력창을 찾을 수 없습니다.", "error");
     return;
   }
 
   if (!selectedSlot) {
-    alert("예약 슬롯을 먼저 선택해주세요.");
+    showToast("예약 슬롯을 먼저 선택해주세요.", "error");
     return;
   }
 
   if (!bookingOpen) {
-    alert("예약이 닫혀 있습니다.");
+    showToast("예약이 닫혀 있습니다.", "error");
     return;
   }
 
@@ -391,13 +456,13 @@ function confirmBooking() {
   var password = passwordEl.value;
 
   if (!alliance || !player || !daysSavedRaw || !password) {
-    alert("모든 항목을 입력해주세요.");
+    showToast("모든 항목을 입력해주세요.", "error");
     return;
   }
 
   var daysSaved = Number(daysSavedRaw);
   if (isNaN(daysSaved) || daysSaved < 0) {
-    alert("Use Speed-up 값을 올바르게 입력해주세요.");
+    showToast("Use Speed-up 값을 올바르게 입력해주세요.", "error");
     return;
   }
 
@@ -419,27 +484,34 @@ function confirmBooking() {
       });
     })
     .then(function () {
+      saveAllianceRecent(alliance);
+      recentBookedSlotId = selectedSlot;
+      setTimeout(function () {
+        recentBookedSlotId = null;
+      }, 1800);
+
       closeModal();
+      showToast("예약이 완료되었습니다.", "success");
     })
     .catch(function (error) {
       console.error("confirmBooking error:", error);
       if (error.message === "ALREADY_RESERVED") {
-        alert("이미 예약된 슬롯입니다.");
+        showToast("이미 예약된 슬롯입니다.", "error");
       } else {
-        alert("예약 중 오류가 발생했습니다.");
+        showToast("예약 중 오류가 발생했습니다.", "error");
       }
     });
 }
 
 function confirmCancel() {
   if (!selectedSlot) {
-    alert("취소할 슬롯을 먼저 선택해주세요.");
+    showToast("취소할 슬롯을 먼저 선택해주세요.", "error");
     return;
   }
 
   var cancelPasswordEl = document.getElementById("cancelPassword");
   if (!cancelPasswordEl) {
-    alert("취소 입력창을 찾을 수 없습니다.");
+    showToast("취소 입력창을 찾을 수 없습니다.", "error");
     return;
   }
 
@@ -461,17 +533,94 @@ function confirmCancel() {
     })
     .then(function () {
       closeCancelModal();
+      showToast("예약이 취소되었습니다.", "success");
     })
     .catch(function (error) {
       console.error("confirmCancel error:", error);
       if (error.message === "NOT_FOUND") {
-        alert("예약 정보를 찾을 수 없습니다.");
+        showToast("예약 정보를 찾을 수 없습니다.", "error");
       } else if (error.message === "WRONG_PASSWORD") {
-        alert("Password incorrect");
+        showToast("비밀번호가 올바르지 않습니다.", "error");
       } else {
-        alert("취소 중 오류가 발생했습니다.");
+        showToast("취소 중 오류가 발생했습니다.", "error");
       }
     });
+}
+
+function csvEscape(value) {
+  var str = value === undefined || value === null ? "" : String(value);
+  str = str.replace(/"/g, '""');
+  return '"' + str + '"';
+}
+
+function downloadCSV(filename, rows) {
+  var csvContent = rows.map(function (row) {
+    return row.map(csvEscape).join(",");
+  }).join("\n");
+
+  var blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  var link = document.createElement("a");
+  var url = URL.createObjectURL(blob);
+
+  link.href = url;
+  link.download = filename;
+  link.style.display = "none";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  setTimeout(function () {
+    URL.revokeObjectURL(url);
+  }, 1000);
+}
+
+function exportCurrentBuffCSV() {
+  if (!adminAuthenticated) return;
+
+  var rows = [["Buff", "UTC Slot", "Alliance", "Player", "Use Speed-up"]];
+  Object.keys(allSlotsData)
+    .filter(function (key) {
+      return key.indexOf(currentBuff + "_") === 0;
+    })
+    .sort()
+    .forEach(function (key) {
+      var slot = allSlotsData[key];
+      rows.push([
+        currentBuff,
+        key.replace(currentBuff + "_", ""),
+        slot.alliance || "",
+        slot.player || "",
+        slot.daysSaved || ""
+      ]);
+    });
+
+  downloadCSV("svs_" + currentBuff + "_booking.csv", rows);
+  showToast("현재 탭 CSV를 내보냈습니다.", "success");
+}
+
+function exportAllCSV() {
+  if (!adminAuthenticated) return;
+
+  var rows = [["Buff", "UTC Slot", "Alliance", "Player", "Use Speed-up"]];
+  Object.keys(allSlotsData)
+    .sort()
+    .forEach(function (key) {
+      var parts = key.split("_");
+      var buff = parts[0];
+      var utcSlot = parts.slice(1).join("_");
+      var slot = allSlotsData[key];
+
+      rows.push([
+        buff,
+        utcSlot,
+        slot.alliance || "",
+        slot.player || "",
+        slot.daysSaved || ""
+      ]);
+    });
+
+  downloadCSV("svs_all_booking.csv", rows);
+  showToast("전체 CSV를 내보냈습니다.", "success");
 }
 
 var canvas = document.getElementById("snow");
@@ -527,6 +676,30 @@ setInterval(updateCountdown, 60000);
 
 updateCountdown();
 setActiveTab();
+renderAllianceSuggestions();
 initSnow();
 drawSnow();
 loadSlots();
+
+var secretClickCount = 0;
+var secretClickTimer = null;
+
+function registerSecretClick() {
+  secretClickCount++;
+
+  clearTimeout(secretClickTimer);
+
+  secretClickTimer = setTimeout(function () {
+    secretClickCount = 0;
+  }, 1200);
+
+  if (secretClickCount >= 3) {
+    secretClickCount = 0;
+    openAdmin();
+  }
+}
+
+var snowBtn = document.getElementById("snowSecret");
+if (snowBtn) {
+  snowBtn.addEventListener("click", registerSecretClick);
+}
