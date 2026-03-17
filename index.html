@@ -89,62 +89,69 @@
   <div id="adminPanel" class="adminPanel">
     <h3>관리자 패널</h3>
 
-    <div id="adminLogin">
-      <div id="adminUserInfo" class="adminUserInfo">관리자 로그인이 필요합니다.</div>
-      <button type="button" onclick="adminGoogleLogin()">Google 로그인</button>
-      <button type="button" onclick="adminLogout()">로그아웃</button>
-    </div>
-
-    <div id="adminControls" style="display:none;">
-      <div class="adminSection">
-        <h4>현재 탭 예약 제어</h4>
-        <button type="button" onclick="setManualBooking(currentBuff, true)">현재 탭 예약 열기</button>
-        <button type="button" onclick="setManualBooking(currentBuff, false)">현재 탭 예약 잠금</button>
-      </div>
-
-      <div class="adminSection">
-        <h4>자동 오픈/마감</h4>
-        <label>Open At</label>
-        <input id="scheduleOpenAt" type="datetime-local">
-        <label>Close At</label>
-        <input id="scheduleCloseAt" type="datetime-local">
-        <button type="button" onclick="saveTabSchedule()">현재 탭 일정 저장</button>
-      </div>
-
-      <div class="adminSection">
-        <h4>SVS 기준일</h4>
-        <input id="svsBaseDateInput" type="date">
-        <button type="button" onclick="saveSvsBaseDate()">기준일 저장</button>
-      </div>
-
-      <div class="adminSection">
-        <h4>현재 탭 백업/삭제</h4>
-        <button type="button" onclick="exportCurrentBuffCSV()">현재 탭 CSV 내보내기</button>
-        <button type="button" onclick="backupAndClearCurrentBuff()">현재 탭 백업 후 삭제</button>
-      </div>
-
-      <div class="adminSection">
-        <h4>전체 백업/삭제</h4>
-        <button type="button" onclick="exportAllCSV()">전체 CSV 내보내기</button>
-        <button type="button" onclick="backupAndClearAll()">전체 백업 후 삭제</button>
-      </div>
-
-      <div class="adminSection">
-        <h4>관리자 메모</h4>
-        <div id="adminSelectedSlotLabel" class="adminSelectedSlotLabel">선택된 슬롯 없음</div>
-        <textarea id="adminNoteInput" placeholder="선택한 슬롯의 관리자 메모"></textarea>
-        <button type="button" onclick="saveAdminNote()">선택 슬롯 메모 저장</button>
-      </div>
-
-      <div class="adminSection">
-        <h4>관리자 로그</h4>
-        <button type="button" onclick="loadLogs()">로그 새로고침</button>
-        <div id="logsBox" class="logsBox"></div>
-      </div>
-    </div>
-
-    <button type="button" onclick="closeAdmin()">닫기</button>
+<div id="adminLogin">
+  <div id="adminUserInfo" class="adminUserInfo">관리자 로그인이 필요합니다.</div>
+  <div class="buttonRow">
+    <button type="button" onclick="adminGoogleLogin()">Google 로그인</button>
+    <button type="button" onclick="adminLogout()">로그아웃</button>
   </div>
+</div>
+
+<div id="adminControls" style="display:none;">
+  <div class="adminSection">
+    <h4>현재 탭 예약 제어</h4>
+    <div class="buttonRow">
+      <button type="button" onclick="setManualBooking(currentBuff, true)">현재 탭 예약 열기</button>
+      <button type="button" onclick="setManualBooking(currentBuff, false)">현재 탭 예약 잠금</button>
+    </div>
+  </div>
+
+  <div class="adminSection">
+    <h4>자동 오픈/마감</h4>
+    <label>Open At</label>
+    <input id="scheduleOpenAt" type="datetime-local">
+    <label>Close At</label>
+    <input id="scheduleCloseAt" type="datetime-local">
+    <button type="button" onclick="saveTabSchedule()">현재 탭 일정 저장</button>
+  </div>
+
+  <div class="adminSection">
+    <h4>SVS 기준일</h4>
+    <input id="svsBaseDateInput" type="date">
+    <button type="button" onclick="saveSvsBaseDate()">기준일 저장</button>
+  </div>
+
+  <div class="adminSection">
+    <h4>현재 탭 백업/삭제</h4>
+    <div class="buttonRow">
+      <button type="button" onclick="exportCurrentBuffCSV()">현재 탭 CSV 내보내기</button>
+      <button type="button" onclick="backupAndClearCurrentBuff()">현재 탭 백업 후 삭제</button>
+    </div>
+  </div>
+
+  <div class="adminSection">
+    <h4>전체 백업/삭제</h4>
+    <div class="buttonRow">
+      <button type="button" onclick="exportAllCSV()">전체 CSV 내보내기</button>
+      <button type="button" onclick="backupAndClearAll()">전체 백업 후 삭제</button>
+    </div>
+  </div>
+
+  <div class="adminSection">
+    <h4>관리자 메모</h4>
+    <div id="adminSelectedSlotLabel" class="adminSelectedSlotLabel">선택된 슬롯 없음</div>
+    <textarea id="adminNoteInput" placeholder="선택한 슬롯의 관리자 메모"></textarea>
+    <button type="button" onclick="saveAdminNote()">선택 슬롯 메모 저장</button>
+  </div>
+
+  <div class="adminSection">
+    <h4>관리자 로그</h4>
+    <button type="button" onclick="loadLogs()">로그 새로고침</button>
+    <div id="logsBox" class="logsBox"></div>
+  </div>
+</div>
+
+<button type="button" onclick="closeAdmin()">닫기</button>
 
   <div id="toastContainer" class="toastContainer"></div>
 
