@@ -185,10 +185,10 @@ function updateTabBookingStateText() {
 }
 
 function getBaseDate() {
-  var raw = bookingSettings.baseDate || "2026-03-23";
+  var raw = bookingSettings.baseDate || "2026-03-28";
   var date = new Date(raw + "T12:00:00Z");
   if (isNaN(date.getTime())) {
-    date = new Date("2026-03-23T12:00:00Z");
+    date = new Date("2026-03-28T12:00:00Z");
   }
   return date;
 }
@@ -802,57 +802,55 @@ function confirmBooking() {
   var player = playerEl.value.trim();
   var daysSavedRaw = daysSavedEl.value.trim();
   var password = passwordEl.value;
-  var validationError = validateBookingInput(alliance, player, daysSavedRaw, password);
 
+  var validationError = validateBookingInput(alliance, player, daysSavedRaw, password);
   if (validationError) {
     showToast(validationError, "error");
     return;
   }
 
   var daysSaved = Number(daysSavedRaw);
-  var docRef = db.collection("slots").doc(selectedSlot);
   var playerNorm = normalizeText(player);
 
+  var slotRef = db.collection("slots").doc(selectedSlot);
+
+  // 같은 buff + 같은 player 1개 제한용 잠금 문서
+  var playerLockId = currentBuff + "__" + playerNorm;
+  var playerLockRef = db.collection("playerBookings").doc(playerLockId);
+
   db.runTransaction(function (transaction) {
-    return transaction.get(docRef).then(function (doc) {
-      if (doc.exists) {
+    return transaction.get(slotRef).then(function (slotDoc) {
+      if (slotDoc.exists) {
         throw new Error("ALREADY_RESERVED");
       }
 
-      return transaction.get(db.collection("slots"))
-        .then(function (snapshot) {
-          var duplicate = false;
-          snapshot.forEach(function (item) {
-            var data = item.data();
-            if (
-              data &&
-              data.buff === currentBuff &&
-              normalizeText(data.player) === playerNorm
-            ) {
-              duplicate = true;
-            }
-          });
+      return transaction.get(playerLockRef).then(function (lockDoc) {
+        if (lockDoc.exists) {
+          throw new Error("PLAYER_ALREADY_BOOKED");
+        }
 
-          if (duplicate) {
-            throw new Error("PLAYER_ALREADY_BOOKED");
-          }
-
-          var payload = {
-            alliance: alliance,
-            player: player,
-            playerNormalized: playerNorm,
-            daysSaved: daysSaved,
-            passwordHash: simpleHash(password),
-            buff: currentBuff,
-            utcSlot: selectedSlot.replace(currentBuff + "_", ""),
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            adminNote: "",
-            status: "reserved"
-          };
-
-          transaction.set(docRef, payload);
+        transaction.set(slotRef, {
+          alliance: alliance,
+          player: player,
+          playerNormalized: playerNorm,
+          daysSaved: daysSaved,
+          passwordHash: simpleHash(password),
+          buff: currentBuff,
+          utcSlot: selectedSlot.replace(currentBuff + "_", ""),
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          adminNote: "",
+          status: "reserved"
         });
+
+        transaction.set(playerLockRef, {
+          slotId: selectedSlot,
+          buff: currentBuff,
+          player: player,
+          playerNormalized: playerNorm,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      });
     });
   })
     .then(function () {
@@ -878,6 +876,7 @@ function confirmBooking() {
     })
     .catch(function (error) {
       console.error("confirmBooking error:", error);
+
       if (error.message === "ALREADY_RESERVED") {
         showToast("이미 예약된 슬롯입니다.", "error");
       } else if (error.message === "PLAYER_ALREADY_BOOKED") {
@@ -971,11 +970,11 @@ function confirmCancel() {
   }
 
   var password = ((document.getElementById("editPassword") || {}).value || "");
-  var docRef = db.collection("slots").doc(selectedSlot);
+  var slotRef = db.collection("slots").doc(selectedSlot);
   var deletedData = null;
 
   db.runTransaction(function (transaction) {
-    return transaction.get(docRef).then(function (doc) {
+    return transaction.get(slotRef).then(function (doc) {
       if (!doc.exists) {
         throw new Error("NOT_FOUND");
       }
@@ -987,7 +986,11 @@ function confirmCancel() {
         throw new Error("WRONG_PASSWORD");
       }
 
-      transaction.delete(docRef);
+      var playerLockId = data.buff + "__" + normalizeText(data.player);
+      var playerLockRef = db.collection("playerBookings").doc(playerLockId);
+
+      transaction.delete(slotRef);
+      transaction.delete(playerLockRef);
     });
   })
     .then(function () {
@@ -1125,11 +1128,20 @@ function backupAndClearCurrentBuff() {
   db.collection("slots").get()
     .then(function (snapshot) {
       var batch = db.batch();
+
       snapshot.forEach(function (doc) {
+        var data = doc.data();
         if (doc.id.indexOf(currentBuff + "_") === 0) {
           batch.delete(doc.ref);
+
+          if (data && data.player) {
+            var playerLockId = data.buff + "__" + normalizeText(data.player);
+            var playerLockRef = db.collection("playerBookings").doc(playerLockId);
+            batch.delete(playerLockRef);
+          }
         }
       });
+
       return batch.commit();
     })
     .then(function () {
@@ -1156,9 +1168,18 @@ function backupAndClearAll() {
   db.collection("slots").get()
     .then(function (snapshot) {
       var batch = db.batch();
+
       snapshot.forEach(function (doc) {
+        var data = doc.data();
         batch.delete(doc.ref);
+
+        if (data && data.player) {
+          var playerLockId = data.buff + "__" + normalizeText(data.player);
+          var playerLockRef = db.collection("playerBookings").doc(playerLockId);
+          batch.delete(playerLockRef);
+        }
       });
+
       return batch.commit();
     })
     .then(function () {
@@ -1172,7 +1193,6 @@ function backupAndClearAll() {
       showToast("전체 삭제 중 오류가 발생했습니다.", "error");
     });
 }
-
 function renderLogs(snapshot) {
   var box = document.getElementById("logsBox");
   if (!box) return;
