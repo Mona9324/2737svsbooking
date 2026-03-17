@@ -13,6 +13,9 @@ try {
   }
 
   window.db = firebase.firestore();
+  window.auth = firebase.auth();
+  window.googleProvider = new firebase.auth.GoogleAuthProvider();
+
   console.log("Firebase initialized");
 } catch (error) {
   console.error("Firebase initialization failed:", error);
