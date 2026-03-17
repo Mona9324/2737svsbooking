@@ -10,27 +10,28 @@
   <canvas id="snow"></canvas>
 
   <header>
-    <div class="creatorBadge">
-      <img src="creator-dino.png" alt="Creator artwork" class="creatorAvatar">
-      <div class="creatorCredit">Mona</div>
-    </div>
+  <h1><span id="snowSecret">❄</span> 2737 SVS Booking</h1>
 
-    <h1><span id="snowSecret">❄</span> 2737 SVS Booking</h1>
-    <div id="countdown"></div>
-    <div id="svsCycleInfo" class="subInfo"></div>
-    <div id="tabBookingState" class="subInfo"></div>
+  <div class="creatorBadge">
+    <img src="creator-dino.png" alt="Creator artwork" class="creatorAvatar">
+    <div class="creatorCredit">Mona</div>
+  </div>
 
-    <div class="headerToolbar">
-  <input id="searchInput" type="text" placeholder="Search alliance / player">
-  <select id="filterStatus" onchange="renderAll()">
-    <option value="all">All</option>
-    <option value="available">Available only</option>
-    <option value="reserved">Reserved only</option>
-    <option value="mine">My reservation only</option>
-  </select>
-  <button type="button" onclick="clearSearch()">Clear</button>
-</div>
-  </header>
+  <div id="countdown"></div>
+  <div id="svsCycleInfo" class="subInfo"></div>
+  <div id="tabBookingState" class="subInfo"></div>
+
+  <div class="headerToolbar">
+    <input id="searchInput" type="text" placeholder="Search alliance / player">
+    <select id="filterStatus" onchange="renderAll()">
+      <option value="all">All</option>
+      <option value="available">Available only</option>
+      <option value="reserved">Reserved only</option>
+      <option value="mine">My reservation only</option>
+    </select>
+    <button type="button" onclick="clearSearch()">Clear</button>
+  </div>
+</header>
 
   <section class="tabsWrap">
     <div class="tabs">
@@ -65,8 +66,8 @@
       <input id="daysSaved" type="number" placeholder="Use Speed-up (사용 가속일수)" min="0" max="9999">
       <input id="password" type="password" placeholder="Cancel/Edit Password (취소/수정 비밀번호)" autocomplete="new-password">
 
-      <button type="button" onclick="confirmBooking()">Reserve</button>
-      <button type="button" onclick="closeModal()">Close</button>
+      <button type="button" onclick="confirmBooking()">Reserve (예약)</button>
+      <button type="button" onclick="closeModal()">Close (닫기)</button>
     </div>
   </div>
 
@@ -80,9 +81,9 @@
       <input id="editDaysSaved" type="number" placeholder="New Use Speed-up" min="0" max="9999">
       <input id="editPassword" type="password" placeholder="Password" autocomplete="current-password">
 
-      <button type="button" onclick="confirmUpdateBooking()">Update Reservation</button>
-      <button type="button" onclick="confirmCancel()">Cancel Reservation</button>
-      <button type="button" onclick="closeReservedModal()">Close</button>
+      <button type="button" onclick="confirmUpdateBooking()">Update Reservation (예약 수정)</button>
+      <button type="button" onclick="confirmCancel()">Cancel Reservation (예약 취소)</button>
+      <button type="button" onclick="closeReservedModal()">Close (닫기)</button>
     </div>
   </div>
 
