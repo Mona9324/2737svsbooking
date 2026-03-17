@@ -185,10 +185,10 @@ function updateTabBookingStateText() {
 }
 
 function getBaseDate() {
-  var raw = bookingSettings.baseDate || "2026-03-23";
-  var date = new Date(raw + "T00:00:00Z");
+  var raw = bookingSettings.baseDate || "2026-03-28";
+  var date = new Date(raw + "T21:00:00Z");
   if (isNaN(date.getTime())) {
-    date = new Date("2026-03-23T00:00:00Z");
+    date = new Date("2026-03-28T21:00:00Z");
   }
   return date;
 }
@@ -225,7 +225,14 @@ function updateCountdown() {
 
   var cycleInfo = document.getElementById("svsCycleInfo");
   if (cycleInfo) {
-    cycleInfo.textContent = "28-day cycle / Next SVS: " + svsDate.toLocaleString();
+    var utcText =
+      svsDate.getUTCFullYear() + "." +
+      String(svsDate.getUTCMonth() + 1).padStart(2, "0") + "." +
+      String(svsDate.getUTCDate()).padStart(2, "0") + " " +
+      String(svsDate.getUTCHours()).padStart(2, "0") + ":" +
+      String(svsDate.getUTCMinutes()).padStart(2, "0") + " UTC";
+
+    cycleInfo.textContent = "28-day cycle / Next SVS: " + utcText;
   }
 }
 
@@ -663,12 +670,12 @@ function generateSlots() {
           '<span class="statusReserved">Reserved</span>' +
         '</div>' +
         '<div class="timeLocal">' + localStart + ' - ' + localEnd + '</div>' +
-        '<div class="bookingInfo">' +
-          'Alliance: [' + escapeHtml(slot.alliance || "-") + ']<br>' +
-          'Player: ' + escapeHtml(slot.player || "-") + '<br>' +
-          'Use Speed-up: ' + escapeHtml(slot.daysSaved || 0) +
-        '</div>';
-
+  '<div class="bookingInfo compact">' +
+    '[' + escapeHtml(slot.alliance || "-") + '] ' +
+    escapeHtml(slot.player || "-") +
+    ' <span class="bookingMeta">· ' + escapeHtml(slot.daysSaved || 0) + 'd</span>' +
+  '</div>';
+      
       if (isMyReservation(slot)) {
         html += '<div class="statusMine">★ My reservation</div>';
       }
