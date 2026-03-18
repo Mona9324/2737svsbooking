@@ -24,7 +24,7 @@ header {
 }
 
 h1 {
-  margin: 0 0 12px;
+  margin: 0 0 10px;
   font-size: 28px;
 }
 
@@ -34,16 +34,10 @@ h1 {
 }
 
 #countdown {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 700;
-  margin-bottom: 8px;
-}
-
-.subInfo {
-  font-size: 14px;
-  color: #5b6470;
-  margin-bottom: 4px;
-  line-height: 1.5;
+  margin-bottom: 10px;
+  color: #374151;
 }
 
 /* ===== creator ===== */
@@ -52,7 +46,7 @@ h1 {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  margin: 4px 0 12px;
+  margin: 6px 0 12px;
 }
 
 .creatorAvatar {
@@ -111,6 +105,116 @@ h1 {
 
 .headerToolbar button:hover {
   background: #6a96f4;
+}
+
+/* ===== booking guide ===== */
+.bookingGuideGrid {
+  max-width: 980px;
+  margin: 8px auto 10px;
+  padding: 12px 18px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(188, 208, 230, 0.7);
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(74, 104, 138, 0.06);
+  box-sizing: border-box;
+}
+
+.bookingCloseText {
+  text-align: center;
+  font-size: 16px;
+  font-weight: 800;
+  color: #d34b4b;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(180, 200, 220, 0.6);
+}
+
+.bookingGuideRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 34px;
+  align-items: start;
+  margin-bottom: 6px;
+}
+
+.bookingGuideRow:last-child {
+  margin-bottom: 0;
+}
+
+.bookingGuideCol {
+  position: relative;
+  padding-left: 14px;
+  font-size: 14px;
+  color: #536171;
+  line-height: 1.55;
+  text-align: left;
+  word-break: keep-all;
+}
+
+.bookingGuideCol::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: #7da7ff;
+  font-weight: 700;
+}
+
+.bookingGuideRow.notice .bookingGuideCol {
+  color: #44566f;
+  font-weight: 600;
+}
+
+.bookingGuideRow.notice .bookingGuideCol::before {
+  content: "✦";
+  color: #d6b347;
+}
+
+@media (max-width: 700px) {
+  .bookingGuideGrid {
+    max-width: calc(100% - 24px);
+    margin: 8px auto 10px;
+    padding: 10px 12px;
+    border-radius: 12px;
+  }
+
+  .bookingCloseText {
+    font-size: 15px;
+    margin-bottom: 8px;
+  }
+
+  .bookingGuideRow {
+    gap: 16px;
+    margin-bottom: 5px;
+  }
+
+  .bookingGuideCol {
+    font-size: 13px;
+    line-height: 1.5;
+    padding-left: 12px;
+  }
+}
+
+@media (max-width: 520px) {
+  .bookingGuideRow {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .bookingGuideCol {
+    text-align: center;
+    padding-left: 0;
+  }
+
+  .bookingGuideCol::before {
+    display: none;
+  }
+
+  .bookingGuideRow.notice {
+    margin-top: 4px;
+    padding-top: 4px;
+    border-top: 1px dashed rgba(160, 178, 201, 0.65);
+  }
 }
 
 /* ===== tabs ===== */
@@ -449,6 +553,30 @@ h1 {
   font-size: 16px;
 }
 
+.adminCloseBtn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 999px;
+  background: #eef4ff;
+  color: #4b6fbf;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.adminCloseBtn:hover {
+  background: #dfeaff;
+}
+
 #adminLogin,
 #adminControls {
   display: flex;
@@ -655,18 +783,6 @@ h1 {
     line-height: 1.35;
   }
 
-  .headlineCountdown {
-    font-size: 16px;
-    margin-bottom: 6px;
-    line-height: 1.35;
-  }
-
-  .subInfo {
-    font-size: 13px;
-    line-height: 1.4;
-    margin-bottom: 2px;
-  }
-
   .creatorBadge {
     margin: 4px 0 10px;
   }
@@ -679,6 +795,29 @@ h1 {
   .creatorCredit {
     margin-top: 6px;
     font-size: 12px;
+  }
+
+  .bookingGuideGrid {
+    max-width: calc(100% - 24px);
+    margin: 8px auto 10px;
+    padding: 10px 12px;
+    border-radius: 12px;
+  }
+
+  .bookingCloseText {
+    font-size: 15px;
+    margin-bottom: 8px;
+  }
+
+  .bookingGuideRow {
+    gap: 16px;
+    margin-bottom: 5px;
+  }
+
+  .bookingGuideCol {
+    font-size: 13px;
+    line-height: 1.5;
+    padding-left: 12px;
   }
 
   .tabs {
@@ -739,6 +878,14 @@ h1 {
     font-size: 24px;
   }
 
+  .adminCloseBtn {
+    top: 10px;
+    right: 10px;
+    width: 36px;
+    height: 36px;
+    font-size: 22px;
+  }
+
   .buttonRow {
     grid-template-columns: 1fr;
   }
@@ -768,6 +915,26 @@ h1 {
     height: 70px;
   }
 
+  .bookingGuideRow {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .bookingGuideCol {
+    text-align: center;
+    padding-left: 0;
+  }
+
+  .bookingGuideCol::before {
+    display: none;
+  }
+
+  .bookingGuideRow.notice {
+    margin-top: 4px;
+    padding-top: 4px;
+    border-top: 1px dashed rgba(160, 178, 201, 0.65);
+  }
+
   .toastContainer {
     top: 12px;
     right: 12px;
@@ -778,43 +945,5 @@ h1 {
   .toast {
     min-width: auto;
     max-width: none;
-  }
-}
-
-.adminPanel {
-  position: fixed;
-}
-
-.adminCloseBtn {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 38px;
-  height: 38px;
-  border: none;
-  border-radius: 999px;
-  background: #eef4ff;
-  color: #4b6fbf;
-  font-size: 24px;
-  font-weight: 700;
-  line-height: 1;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-}
-
-.adminCloseBtn:hover {
-  background: #dfeaff;
-}
-
-@media (max-width: 700px) {
-  .adminCloseBtn {
-    top: 10px;
-    right: 10px;
-    width: 36px;
-    height: 36px;
-    font-size: 22px;
   }
 }
