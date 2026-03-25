@@ -128,7 +128,7 @@
       <div class="adminSection">
         <h4>현재 탭 백업/삭제</h4>
         <div class="buttonRow">
-          <button type="button" onclick="exportCurrentBuffCSV()">현재 탭 CSV 내보내기</button>
+          <button type="button" onclick="exportCurrentBuffCSV()">현재 탭 엑셀 내보내기</button>
           <button type="button" onclick="backupAndClearCurrentBuff()">현재 탭 백업 후 삭제</button>
         </div>
       </div>
@@ -136,7 +136,7 @@
       <div class="adminSection">
         <h4>전체 백업/삭제</h4>
         <div class="buttonRow">
-          <button type="button" onclick="exportAllCSV()">전체 CSV 내보내기</button>
+          <button type="button" onclick="exportAllCSV()">전체 엑셀 내보내기</button>
           <button type="button" onclick="backupAndClearAll()">전체 백업 후 삭제</button>
         </div>
       </div>
@@ -160,7 +160,7 @@
   </div>
 
   <div id="toastContainer" class="toastContainer"></div>
-
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
