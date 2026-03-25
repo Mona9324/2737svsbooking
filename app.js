@@ -98,6 +98,23 @@ function getTodayFileDate() {
   return yyyy + "-" + mm + "-" + dd;
 }
 
+function formatLocalTime(date) {
+  var tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  if (tz === "Asia/Seoul") {
+    return date.toLocaleTimeString("ko-KR", {
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  }
+
+  return date.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true
+  });
+}
+
 /* =========================
    local storage helpers
 ========================= */
@@ -305,15 +322,15 @@ function updateBookingGuide() {
   guide.innerHTML =
     '<div id="bookingCloseText" class="bookingCloseText"></div>' +
     '<div class="bookingGuideRow">' +
-      '<div class="bookingGuideCol">Day 1 (Thu) : 30d+ speed-up</div>' +
-      '<div class="bookingGuideCol">1일차 (목) : 가속 30일 이상</div>' +
+      '<div class="bookingGuideCol">Day 1 (Thu): 30d+ speed-up</div>' +
+      '<div class="bookingGuideCol">1일차 (목): 가속 30일 이상</div>' +
     '</div>' +
     '<div class="bookingGuideRow">' +
-      '<div class="bookingGuideCol">Day 2 (Fri) : 15d+ speed-up</div>' +
-      '<div class="bookingGuideCol">2일차 (금) : 가속 15일 이상</div>' +
+      '<div class="bookingGuideCol">Day 2 (Fri): 15d+ speed-up</div>' +
+      '<div class="bookingGuideCol">2일차 (금): 가속 15일 이상</div>' +
     '</div>' +
     '<div class="bookingGuideRow">' +
-      '<div class="bookingGuideCol">Day 3+ : Free booking</div>' +
+      '<div class="bookingGuideCol">Day 3+: Free booking</div>' +
       '<div class="bookingGuideCol">3일차부터 자유 예약</div>' +
     '</div>' +
     '<div class="bookingGuideRow notice">' +
@@ -387,10 +404,7 @@ function formatSlotInfo(slotId) {
   return [
     "Buff: " + buff,
     "UTC: " + start + " - " + end,
-    "Local: " +
-      date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) +
-      " - " +
-      localEndDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    "Local: " + formatLocalTime(date) + " - " + formatLocalTime(localEndDate)
   ].join("<br>");
 }
 
@@ -835,25 +849,8 @@ function generateSlots() {
     localDate.setUTCHours(Number(parts[0]), Number(parts[1]), 0, 0);
     var localEndDate = new Date(localDate.getTime() + 30 * 60 * 1000);
 
-function formatLocalTime(date) {
-  var tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-  if (tz === "Asia/Seoul") {
-    return date.toLocaleTimeString("ko-KR", {
-      hour: "2-digit",
-      minute: "2-digit"
-    });
-  } else {
-    return date.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true
-    });
-  }
-}
-
-var localStart = formatLocalTime(localDate);
-var localEnd = formatLocalTime(localEndDate);
+    var localStart = formatLocalTime(localDate);
+    var localEnd = formatLocalTime(localEndDate);
 
     var div = document.createElement("div");
     div.className = "slot";
@@ -1288,51 +1285,173 @@ function saveAdminNote() {
 }
 
 /* =========================
-   CSV / delete
+   Excel export
 ========================= */
-function csvEscape(value) {
-  var str = value === undefined || value === null ? "" : String(value);
-  str = str.replace(/"/g, '""');
-  return '"' + str + '"';
+function getBuffLabel(buff) {
+  if (buff === "monday") return "Monday";
+  if (buff === "tuesday") return "Tuesday";
+  if (buff === "thursday") return "Thursday";
+  return buff || "";
 }
 
-function downloadCSV(filename, rows) {
-  var csvContent = rows.map(function (row) {
-    return row.map(csvEscape).join(",");
-  }).join("\n");
-
-  var BOM = "\uFEFF";
-  var blob = new Blob([BOM + csvContent], { type: "text/csv;charset=utf-8;" });
-  var link = document.createElement("a");
-  var url = URL.createObjectURL(blob);
-
-  link.href = url;
-  link.download = filename;
-  link.style.display = "none";
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-
-  setTimeout(function () {
-    URL.revokeObjectURL(url);
-  }, 1000);
-}
-
-function buildCsvRows(keys) {
-  var rows = [["Buff", "UTC Slot", "Alliance", "Player", "Use Speed-up", "Admin Note"]];
-  keys.sort().forEach(function (key) {
+function getSlotRows(keys) {
+  return keys.sort().map(function (key) {
     var slot = allSlotsData[key];
-    if (!slot) return;
-    rows.push([
-      slot.buff || "",
-      slot.utcSlot || key.replace((slot.buff || "") + "_", ""),
-      slot.alliance || "",
-      slot.player || "",
-      slot.daysSaved || "",
-      slot.adminNote || ""
-    ]);
+    if (!slot) return null;
+
+    return {
+      Buff: slot.buff || "",
+      Day: getBuffLabel(slot.buff || ""),
+      "UTC Slot": slot.utcSlot || key.replace((slot.buff || "") + "_", ""),
+      Alliance: slot.alliance || "",
+      Player: slot.player || "",
+      "Use Speed-up": Number(slot.daysSaved || 0),
+      "Admin Note": slot.adminNote || ""
+    };
+  }).filter(Boolean);
+}
+
+function buildAllianceSummaryRows(slotRows) {
+  var map = {};
+
+  slotRows.forEach(function (row) {
+    var alliance = row.Alliance || "(blank)";
+    if (!map[alliance]) {
+      map[alliance] = {
+        Alliance: alliance,
+        Reservations: 0,
+        "Total Speed-up": 0,
+        Monday: 0,
+        Tuesday: 0,
+        Thursday: 0
+      };
+    }
+
+    map[alliance].Reservations += 1;
+    map[alliance]["Total Speed-up"] += Number(row["Use Speed-up"] || 0);
+
+    if (row.Buff === "monday") map[alliance].Monday += 1;
+    if (row.Buff === "tuesday") map[alliance].Tuesday += 1;
+    if (row.Buff === "thursday") map[alliance].Thursday += 1;
   });
-  return rows;
+
+  return Object.keys(map)
+    .map(function (key) {
+      return map[key];
+    })
+    .sort(function (a, b) {
+      if (b["Total Speed-up"] !== a["Total Speed-up"]) {
+        return b["Total Speed-up"] - a["Total Speed-up"];
+      }
+      return a.Alliance.localeCompare(b.Alliance);
+    });
+}
+
+function autoFitWorksheetColumns(ws, rows) {
+  if (!rows || !rows.length) return;
+
+  var headers = Object.keys(rows[0]);
+  var colWidths = headers.map(function (header) {
+    return Math.max(String(header).length + 2, 12);
+  });
+
+  rows.forEach(function (row) {
+    headers.forEach(function (header, idx) {
+      var value = row[header];
+      var text = value === undefined || value === null ? "" : String(value);
+      colWidths[idx] = Math.min(Math.max(colWidths[idx], text.length + 2), 40);
+    });
+  });
+
+  ws["!cols"] = colWidths.map(function (wch) {
+    return { wch: wch };
+  });
+}
+
+function appendSheetFromRows(workbook, sheetName, rows) {
+  var safeRows = rows && rows.length ? rows : [{ Notice: "No data" }];
+  var ws = XLSX.utils.json_to_sheet(safeRows);
+  autoFitWorksheetColumns(ws, safeRows);
+  XLSX.utils.book_append_sheet(workbook, ws, sheetName);
+}
+
+function exportSlotsWorkbook(filename, keys) {
+  if (typeof XLSX === "undefined") {
+    showToast("엑셀 라이브러리를 불러오지 못했습니다.", "error");
+    return;
+  }
+
+  var workbook = XLSX.utils.book_new();
+  var slotRows = getSlotRows(keys);
+
+  appendSheetFromRows(workbook, "All Bookings", slotRows);
+
+  var mondayRows = slotRows.filter(function (row) { return row.Buff === "monday"; });
+  var tuesdayRows = slotRows.filter(function (row) { return row.Buff === "tuesday"; });
+  var thursdayRows = slotRows.filter(function (row) { return row.Buff === "thursday"; });
+
+  appendSheetFromRows(workbook, "Monday", mondayRows);
+  appendSheetFromRows(workbook, "Tuesday", tuesdayRows);
+  appendSheetFromRows(workbook, "Thursday", thursdayRows);
+
+  var allianceSummaryRows = buildAllianceSummaryRows(slotRows);
+  appendSheetFromRows(workbook, "Alliance Summary", allianceSummaryRows);
+
+  XLSX.writeFile(workbook, filename);
+}
+
+function normalizeLogText(value) {
+  if (value === undefined || value === null) return "";
+
+  if (typeof value === "object") {
+    try {
+      value = JSON.stringify(value);
+    } catch (e) {
+      value = String(value);
+    }
+  }
+
+  return String(value)
+    .replace(/\r\n/g, " ")
+    .replace(/\n/g, " ")
+    .replace(/\r/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function formatLogPayloadForExcel(payload) {
+  if (!payload || typeof payload !== "object") return "";
+
+  var preferredOrder = [
+    "slotId",
+    "buff",
+    "isOpen",
+    "alliance",
+    "player",
+    "daysSaved",
+    "openAt",
+    "closeAt",
+    "baseDate",
+    "before",
+    "after"
+  ];
+
+  var used = {};
+  var parts = [];
+
+  preferredOrder.forEach(function (key) {
+    if (Object.prototype.hasOwnProperty.call(payload, key)) {
+      parts.push(key + "=" + normalizeLogText(payload[key]));
+      used[key] = true;
+    }
+  });
+
+  Object.keys(payload).sort().forEach(function (key) {
+    if (used[key]) return;
+    parts.push(key + "=" + normalizeLogText(payload[key]));
+  });
+
+  return parts.join(" | ");
 }
 
 function exportCurrentBuffCSV() {
@@ -1342,16 +1461,68 @@ function exportCurrentBuffCSV() {
     return key.indexOf(currentBuff + "_") === 0;
   });
 
-  downloadCSV("svs_" + currentBuff + "_booking_" + getTodayFileDate() + ".csv", buildCsvRows(keys));
-  showToast("현재 탭 CSV를 내보냈습니다.", "success");
+  exportSlotsWorkbook(
+    "2737_SVS_booking_" + currentBuff + "_" + getTodayFileDate() + ".xlsx",
+    keys
+  );
+
+  showToast("현재 탭 엑셀을 내보냈습니다.", "success");
 }
 
 function exportAllCSV() {
   if (!adminAuthenticated) return;
 
   var keys = Object.keys(allSlotsData);
-  downloadCSV("svs_all_booking_" + getTodayFileDate() + ".csv", buildCsvRows(keys));
-  showToast("전체 CSV를 내보냈습니다.", "success");
+
+  exportSlotsWorkbook(
+    "2737_SVS_booking_all_" + getTodayFileDate() + ".xlsx",
+    keys
+  );
+
+  showToast("전체 엑셀을 내보냈습니다.", "success");
+}
+
+function downloadLogsCSV() {
+  if (!adminAuthenticated) return;
+  if (typeof XLSX === "undefined") {
+    showToast("엑셀 라이브러리를 불러오지 못했습니다.", "error");
+    return;
+  }
+
+  db.collection("logs")
+    .orderBy("createdAt", "desc")
+    .limit(500)
+    .get()
+    .then(function (snapshot) {
+      var rows = [];
+
+      snapshot.forEach(function (doc) {
+        var data = doc.data();
+        var timeText = "";
+
+        if (data.createdAt && data.createdAt.toDate) {
+          timeText = data.createdAt.toDate().toLocaleString();
+        }
+
+        rows.push({
+          Type: normalizeLogText(data.type || ""),
+          Time: normalizeLogText(timeText),
+          "Actor Email": normalizeLogText(data.actorEmail || ""),
+          "Actor UID": normalizeLogText(data.actorUid || ""),
+          Detail: formatLogPayloadForExcel(data.payload || {})
+        });
+      });
+
+      var workbook = XLSX.utils.book_new();
+      appendSheetFromRows(workbook, "Admin Logs", rows);
+      XLSX.writeFile(workbook, "svs_admin_logs_" + getTodayFileDate() + ".xlsx");
+
+      showToast("관리자 로그를 다운로드했습니다.", "success");
+    })
+    .catch(function (error) {
+      console.error("downloadLogsCSV error:", error);
+      showToast("관리자 로그 다운로드 중 오류가 발생했습니다.", "error");
+    });
 }
 
 function askDeleteConfirm(message) {
@@ -1490,102 +1661,6 @@ function loadLogs() {
         console.error("loadLogs error:", error);
       }
     );
-}
-
-function normalizeLogText(value) {
-  if (value === undefined || value === null) return "";
-
-  if (typeof value === "object") {
-    try {
-      value = JSON.stringify(value);
-    } catch (e) {
-      value = String(value);
-    }
-  }
-
-  return String(value)
-    .replace(/\r\n/g, " ")
-    .replace(/\n/g, " ")
-    .replace(/\r/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function formatLogPayloadForExcel(payload) {
-  if (!payload || typeof payload !== "object") return "";
-
-  var preferredOrder = [
-    "slotId",
-    "buff",
-    "isOpen",
-    "alliance",
-    "player",
-    "daysSaved",
-    "openAt",
-    "closeAt",
-    "baseDate",
-    "before",
-    "after"
-  ];
-
-  var used = {};
-  var parts = [];
-
-  preferredOrder.forEach(function (key) {
-    if (Object.prototype.hasOwnProperty.call(payload, key)) {
-      parts.push(key + "=" + normalizeLogText(payload[key]));
-      used[key] = true;
-    }
-  });
-
-  Object.keys(payload).sort().forEach(function (key) {
-    if (used[key]) return;
-    parts.push(key + "=" + normalizeLogText(payload[key]));
-  });
-
-  return parts.join(" | ");
-}
-
-function downloadLogsCSV() {
-  if (!adminAuthenticated) return;
-
-  db.collection("logs")
-    .orderBy("createdAt", "desc")
-    .limit(500)
-    .get()
-    .then(function (snapshot) {
-      var rows = [[
-        "Type",
-        "Time",
-        "Actor Email",
-        "Actor UID",
-        "Detail"
-      ]];
-
-      snapshot.forEach(function (doc) {
-        var data = doc.data();
-        var timeText = "";
-
-        if (data.createdAt && data.createdAt.toDate) {
-          timeText = data.createdAt.toDate().toLocaleString();
-        }
-
-        rows.push([
-          normalizeLogText(data.type || ""),
-          normalizeLogText(timeText),
-          normalizeLogText(data.actorEmail || ""),
-          normalizeLogText(data.actorUid || ""),
-          formatLogPayloadForExcel(data.payload || {})
-        ]);
-      });
-
-      downloadCSV("svs_admin_logs_" + getTodayFileDate() + ".csv", rows);
-      showToast("관리자 로그를 다운로드했습니다.", "success");
-    })
-    .catch(function (error) {
-      console.error("downloadLogsCSV error:", error);
-      showToast("관리자 로그 다운로드 중 오류가 발생했습니다.", "error");
-    });
 }
 
 /* =========================
